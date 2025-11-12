@@ -1,7 +1,7 @@
+// app/companies/[id]/EditorClient.tsx
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase-browser'
 import CompanyForm from '../CompanyForm'
 
 export default function EditorClient({
@@ -11,33 +11,36 @@ export default function EditorClient({
   id: string
   initialCompany: any
 }) {
-  const supabase = createClient()
-  const [company, setCompany] = useState<any>(initialCompany)
   const [saving, setSaving] = useState(false)
-
-  async function handleSave() {
-    setSaving(true)
-    const { error } = await supabase
-      .from('organizations')
-      .update(company)
-      .eq('id', id)
-    setSaving(false)
-    if (error) {
-      alert(error.message)
-      return
-    }
-    window.location.href = '/companies/inventory'
-  }
 
   function handleCancel() {
     window.location.href = '/companies/inventory'
+  }
+
+  async function handleSave() {
+    // Submit the inner CompanyForm (it owns the save logic)
+    setSaving(true)
+    try {
+      const form = document.getElementById('company-edit-form') as HTMLFormElement | null
+      if (form) {
+        // requestSubmit triggers CompanyForm's onSubmit handler
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit()
+        } else {
+          form.submit()
+        }
+      }
+    } finally {
+      // CompanyForm navigates after save; we clear just in case
+      setTimeout(() => setSaving(false), 300)
+    }
   }
 
   return (
     <div className="container-px mx-auto max-w-4xl py-8 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">
-          Company — {company?.name || 'Untitled'}
+          Company — {initialCompany?.company_name || 'Untitled'}
         </h1>
         <div className="flex gap-2">
           <button className="btn" onClick={handleSave} disabled={saving}>
@@ -49,7 +52,14 @@ export default function EditorClient({
         </div>
       </div>
 
-      <CompanyForm company={company} onChange={setCompany} />
+      {/* Use CompanyForm in edit mode; hide its footer actions since we provide our own */}
+      <CompanyForm
+        mode="edit"
+        id={id}
+        initial={initialCompany}
+        hideFooterActions
+        minimal
+      />
     </div>
   )
 }
