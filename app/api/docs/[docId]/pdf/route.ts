@@ -69,22 +69,32 @@ function safeFilename(s: string) {
 }
 
 function ensureKeys(node: any, path = "k"): any {
-  if (Array.isArray(node)) return node.map((c, i) => ensureKeys(c, `${path}.${i}`));
-  if (React.isValidElement(node)) {
-    const props: any = { ...node.props };
+  if (Array.isArray(node)) {
+    return node.map((c, i) => ensureKeys(c, `${path}.${i}`));
+  }
+
+  if (node && React.isValidElement(node)) {
+    // Make TS happy: always spread a real object
+    const baseProps = ((node as any).props ?? {}) as Record<string, unknown>;
+    const props: any = { ...baseProps };
+
     if (props.children !== undefined) {
       if (Array.isArray(props.children)) {
         props.children = props.children.map((child: any, i: number) =>
           React.isValidElement(child)
-            ? React.cloneElement(ensureKeys(child, `${path}.${i}`), { key: `${path}.${i}` })
+            ? React.cloneElement(ensureKeys(child, `${path}.${i}`) as any, {
+                key: `${path}.${i}`,
+              })
             : ensureKeys(child, `${path}.${i}`)
         );
       } else {
         props.children = ensureKeys(props.children, `${path}.c`);
       }
     }
-    return React.cloneElement(node, { ...props, key: node.key ?? path });
+
+    return React.cloneElement(node, { ...props, key: (node as any).key ?? path } as any);
   }
+
   return node;
 }
 
