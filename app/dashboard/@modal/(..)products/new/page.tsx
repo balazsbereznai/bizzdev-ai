@@ -11,7 +11,7 @@ export default function ProductCreateModal() {
     <ModalHost title="Product — New" backHref="/dashboard/hub">
       <ModalActionsPortal>
         {/* No Delete on brand-new entry */}
-        <ModalSaveExitButton to="/dashboard/hub" />
+        <ModalSaveExitButton onDoneHref="/dashboard/hub" />
       </ModalActionsPortal>
 
       <NewProductClient />
