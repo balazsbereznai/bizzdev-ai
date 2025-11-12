@@ -1,6 +1,7 @@
+// app/dev/doc/page.tsx — FULL REPLACE
 import DocShell from "@/components/DocShell";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-import { generateDoc } from "@/app/actions/generate";
+import { generatePlaybookAction } from "@/app/actions/generate"; // ← fix import/name
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -34,10 +35,19 @@ export default async function Page() {
 
   async function onGenerate() {
     "use server";
-    await generateDoc({
+    // Minimal valid input for our generate action. Uses doc.vars when present.
+    const vars = (doc as any).vars ?? {};
+    await generatePlaybookAction({
       docId,
-      type: (doc.type ?? "Playbook") as any,
-      vars: doc.vars ?? { company: "Audit//AI", product: "Audit//AI", geo: "CEE", buyer: "CIO" },
+      input: {
+        company_name: vars.company ?? "Acme Corp",
+        product_name: vars.product ?? "WidgetX",
+        industry: vars.industry ?? "B2B Software",
+        sales_motion: vars.sales_motion ?? "Solution",
+        tone: vars.tone ?? "Pragmatic",
+        experience_level: vars.experience_level ?? "Experienced",
+        output_language: "en",
+      } as any,
     });
   }
 
@@ -63,3 +73,4 @@ export default async function Page() {
     </div>
   );
 }
+
