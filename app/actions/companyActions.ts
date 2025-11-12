@@ -6,25 +6,27 @@ import { redirect } from 'next/navigation';
 
 export async function createCompanyFromHub() {
   const cookieStore = await cookies();
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // In a Server Action we may read/write cookies
+      // For @supabase/ssr v0.7.x the cookies option must provide get/set/remove only
       cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        getAll: () => cookieStore.getAll().map(c => ({ name: c.name, value: c.value })),
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...(o as any) }),
-        setAll: (list: { name: string; value: string; options?: any }[]) =>
-          list.forEach(({ name, value, options }) =>
-            cookieStore.set({ name, value, ...(options as any) })
-          ),
-        remove: (n, o) => cookieStore.delete({ name: n, ...(o as any) }),
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        // No cookie mutation needed in this action; keep as no-ops for type compatibility
+        set() {},
+        remove() {},
       },
     }
   );
 
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
   if (userErr || !user) redirect('/signin');
 
   const { data: row, error: insErr } = await supabase
@@ -41,7 +43,6 @@ export async function createCompanyFromHub() {
     .single();
 
   if (insErr || !row?.id) {
-    // fall back to hub with an error message if needed
     redirect('/dashboard/hub?err=create_company_failed');
   }
 
