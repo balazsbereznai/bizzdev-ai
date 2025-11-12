@@ -10,7 +10,7 @@ export default function IcpCreateModal() {
   return (
     <ModalHost title="ICP — New" backHref="/dashboard/hub">
       <ModalActionsPortal>
-        <ModalSaveExitButton to="/dashboard/hub" />
+        <ModalSaveExitButton onDoneHref="/dashboard/hub" />
       </ModalActionsPortal>
 
       <NewIcpClient />
