@@ -19,7 +19,6 @@ async function supabaseServer() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        // We only need to read cookies here; keep setters as no-ops for type compatibility
         set() {},
         remove() {},
       },
@@ -59,7 +58,9 @@ const styles = StyleSheet.create({
 function ensureKeys(node: any, path = "k"): any {
   if (Array.isArray(node)) return node.map((c, i) => ensureKeys(c, `${path}.${i}`));
   if (React.isValidElement(node)) {
-    const props: any = { ...node.props };
+    // Guard: only spread an object
+    const props: Record<string, any> = { ...(((node as any).props ?? {}) as object) };
+
     if (props.children !== undefined) {
       if (Array.isArray(props.children)) {
         props.children = props.children.map((child: any, i: number) =>
@@ -71,7 +72,7 @@ function ensureKeys(node: any, path = "k"): any {
         props.children = ensureKeys(props.children, `${path}.c`);
       }
     }
-    return React.cloneElement(node, { ...props, key: node.key ?? path });
+    return React.cloneElement(node, { ...props, key: (node as any).key ?? path });
   }
   return node;
 }
@@ -79,14 +80,15 @@ function ensureKeys(node: any, path = "k"): any {
 function stripFontFamilyDeep(node: any, path = "n"): any {
   if (Array.isArray(node)) return node.map((c, i) => stripFontFamilyDeep(c, `${path}.${i}`));
   if (React.isValidElement(node)) {
-    const props: any = { ...node.props };
+    // Guard: only spread an object
+    const props: Record<string, any> = { ...(((node as any).props ?? {}) as object) };
 
     const normalizeStyle = (st: any) => {
       if (!st) return st;
       if (Array.isArray(st)) return st.map(normalizeStyle);
       if (typeof st === "object") {
         const next = { ...st };
-        if ("fontFamily" in next) delete next.fontFamily;
+        if ("fontFamily" in next) delete (next as any).fontFamily;
         return next;
       }
       return st;
@@ -105,7 +107,7 @@ function stripFontFamilyDeep(node: any, path = "n"): any {
       }
     }
 
-    return React.cloneElement(node, { ...props, key: node.key ?? path });
+    return React.cloneElement(node, { ...props, key: (node as any).key ?? path });
   }
   return node;
 }
