@@ -144,7 +144,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
 
   const markdown = doc.content ?? "";
 
-  const rawNodes = await mdToPdfNodes(markdown, brand);
+  // Cast brand to satisfy the stricter signature without changing runtime behavior
+  const rawNodes = await mdToPdfNodes(markdown, brand as any);
+
   let content = ensureKeys(rawNodes);
 
   try {
