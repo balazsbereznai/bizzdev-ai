@@ -1,0 +1,91 @@
+/* styles/twp/index.css */
+@layer base {
+  /* ---------- Default theme: BizzDev Green ---------- */
+  :root,
+  .theme-bizzdev-green {
+    --bg:        #FAF3DD; /* Gentle cream */
+    --surface:   #FFF9E8; /* Slightly lighter elevated panels */
+    --text:      #594A3A; /* Rich brown */
+    --muted:     #8B7964; /* Muted brown-gray */
+    --primary:   #548164; /* Natural green */
+    --accent:    #FF6F61; /* Coral */
+    --accent-2:  #CB912F; /* Intelligent yellow */
+    --warning:   #CB912F;
+    --success:   #548164;
+    --ring:      #CB912F;
+    --border:    #E3DCCB;
+
+    color-scheme: light;
+  }
+
+  /* ---------- Alt theme: BizzDev Navy (legacy) ---------- */
+  .theme-bizzdev-navy {
+    --bg:        #283C63;
+    --surface:   #375287;
+    --text:      #FFFFFF;
+    --muted:     #B0C4E0;
+    --primary:   #375287;
+    --accent:    #DBC078;
+    --accent-2:  #B0D1FA;
+    --warning:   #DBC078;
+    --success:   #548164;
+    --ring:      #B0D1FA;
+    --border:    #4C618C;
+
+    color-scheme: dark;
+  }
+
+  /* Base document colors */
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  /* ---------- NextUI v2 bridge (maps our tokens → NextUI CSS variables) ---------- */
+  .bizzdev-green {
+    --nextui-background: var(--bg);
+    --nextui-foreground: var(--text);
+    --nextui-focus: var(--ring);
+    --nextui-divider: var(--border);
+    --nextui-content1: var(--surface);
+
+    --nextui-primary: var(--primary);
+    --nextui-primary-foreground: var(--bg);
+
+    --nextui-secondary: var(--accent);
+    --nextui-secondary-foreground: var(--bg);
+
+    --nextui-warning: var(--warning);
+    --nextui-warning-foreground: var(--bg);
+
+    --nextui-success: var(--success);
+    --nextui-success-foreground: var(--bg);
+
+    --nextui-default: var(--surface);
+    --nextui-default-foreground: var(--text);
+  }
+
+  .bizzdev-navy {
+    --nextui-background: var(--bg);
+    --nextui-foreground: var(--text);
+    --nextui-focus: var(--ring);
+    --nextui-divider: var(--border);
+    --nextui-content1: var(--surface);
+
+    --nextui-primary: var(--primary);
+    --nextui-primary-foreground: var(--text);
+
+    --nextui-secondary: var(--accent);
+    --nextui-secondary-foreground: var(--text);
+
+    --nextui-warning: var(--warning);
+    --nextui-warning-foreground: var(--text);
+
+    --nextui-success: var(--success);
+    --nextui-success-foreground: var(--text);
+
+    --nextui-default: var(--surface);
+    --nextui-default-foreground: var(--text);
+  }
+}
+

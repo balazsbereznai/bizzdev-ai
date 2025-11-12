@@ -1,0 +1,76 @@
+/* Brand prose — high contrast on dark bg
+   Headings: #ddcdac
+   Body:     #efefcb
+*/
+.prose-brand {
+  /* core text colors */
+  --tw-prose-body: #efefcb;
+  --tw-prose-headings: #ddcdac;
+  --tw-prose-bold: #efefcb;
+
+  /* links */
+  --tw-prose-links: #ddcdac;
+  --tw-prose-counters: #efefcb;
+  --tw-prose-bullets: #efefcb;
+
+  /* rules & table borders (slightly muted) */
+  --tw-prose-hr: rgba(221, 205, 172, 0.35);
+  --tw-prose-th-borders: rgba(221, 205, 172, 0.35);
+  --tw-prose-td-borders: rgba(221, 205, 172, 0.2);
+
+  /* quotes */
+  --tw-prose-quotes: #efefcb;
+  --tw-prose-quote-borders: rgba(221, 205, 172, 0.6);
+
+  /* code text & code blocks */
+  --tw-prose-code: #efefcb;
+  --tw-prose-pre-code: #efefcb;
+  --tw-prose-pre-bg: rgba(255, 255, 255, 0.03); /* faint so text pops */
+
+  /* captions */
+  --tw-prose-captions: rgba(239, 239, 203, 0.8);
+}
+
+/* a bit more clarity for links on dark bg */
+.prose-brand a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Ensure strong/em inherit body color */
+.prose-brand strong,
+.prose-brand em {
+  color: #efefcb;
+}
+
+/* Headings weight & spacing for readability */
+.prose-brand h1,
+.prose-brand h2,
+.prose-brand h3 {
+  color: #ddcdac;
+  letter-spacing: -0.01em;
+}
+
+/* Ensure body text & list items use our light color */
+.prose-brand :where(p, li, td, th) {
+  color: #efefcb;
+}
+
+/* Headings in brand gold */
+.prose-brand :where(h1, h2, h3, h4, h5, h6) {
+  color: #ddcdac;
+}
+
+/* Links readable on dark */
+.prose-brand a {
+  color: #ddcdac;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* List markers */
+.prose-brand :where(ul > li)::marker,
+.prose-brand :where(ol > li)::marker {
+  color: #efefcb;
+}
+
