@@ -5,6 +5,9 @@ import { Document, Page, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import React from "react";
 import "@/pdf/PlaybookPDF";
 
+// Ensure Node runtime so Buffer is available
+export const runtime = "nodejs";
+
 /* ---------------------------------------------------------
    Supabase helper
 --------------------------------------------------------- */
@@ -144,16 +147,16 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
 
   const markdown = doc.content ?? "";
 
-  // Cast brand to satisfy the stricter signature without changing runtime behavior
+  // brand cast keeps runtime identical; only relaxes TS here
   const rawNodes = await mdToPdfNodes(markdown, brand as any);
-
   let content = ensureKeys(rawNodes);
 
   try {
     const element = createPdfDoc({ title: doc.title }, content);
     const buffer = await pdf(element).toBuffer();
     const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
-    return new Response(buffer, {
+
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "content-type": "application/pdf",
@@ -167,7 +170,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
       const element = createPdfDoc({ title: doc.title }, stripped);
       const buffer = await pdf(element).toBuffer();
       const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
-      return new Response(buffer, {
+
+      return new Response(new Uint8Array(buffer), {
         status: 200,
         headers: {
           "content-type": "application/pdf",
