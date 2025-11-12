@@ -11,9 +11,10 @@ const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-// dynamic import to avoid TS typing issues for nodemailer without extra files
+// dynamic import + ts-ignore to avoid adding @types/nodemailer or extra .d.ts files
 async function mailer() {
-  const { createTransport } = (await import("nodemailer")) as any;
+  // @ts-ignore - nodemailer has no types in this env; runtime import is valid
+  const { createTransport } = await import("nodemailer");
   const host = process.env.SMTP_HOST!;
   const port = Number(process.env.SMTP_PORT || 465);
   const secure = String(process.env.SMTP_SECURE || "true") === "true";
