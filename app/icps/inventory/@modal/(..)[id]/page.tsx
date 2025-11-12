@@ -1,3 +1,4 @@
+// app/icps/inventory/@modal/(..)[id]/page.tsx
 import ModalHost from './ModalHost';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
@@ -19,15 +20,16 @@ export default async function ICPInterceptedEditPage({
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // RSC-safe: read-only cookie adapter
       cookies: {
-        get: n => cookieStore.get(n)?.value,
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n, o) => cookieStore.delete({ name: n, ...o }),
+        get: (n: string) => cookieStore.get(n)?.value,
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect('/signin');
 
   // Header mirrors Companies/Product style: plain entity name
