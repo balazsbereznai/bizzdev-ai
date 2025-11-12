@@ -99,33 +99,45 @@ function ensureKeys(node: any, path = "k"): any {
 }
 
 function stripFontFamilyDeep(node: any, path = "n"): any {
-  if (Array.isArray(node)) return node.map((c, i) => stripFontFamilyDeep(c, `${path}.${i}`));
-  if (React.isValidElement(node)) {
-    const props: any = { ...node.props };
+  if (Array.isArray(node)) {
+    return node.map((c, i) => stripFontFamilyDeep(c, `${path}.${i}`));
+  }
+
+  if (node && React.isValidElement(node)) {
+    // Always spread a real object for TS
+    const baseProps = ((node as any).props ?? {}) as Record<string, unknown>;
+    const props: any = { ...baseProps };
+
     const normalizeStyle = (st: any): any => {
       if (!st) return st;
       if (Array.isArray(st)) return st.map(normalizeStyle);
       if (typeof st === "object") {
-        const next = { ...st };
+        const next = { ...(st as Record<string, unknown>) };
         if ("fontFamily" in next) delete (next as any).fontFamily;
         return next;
       }
       return st;
     };
+
     if (props.style) props.style = normalizeStyle(props.style);
+
     if (props.children !== undefined) {
       if (Array.isArray(props.children)) {
         props.children = props.children.map((child: any, i: number) =>
           React.isValidElement(child)
-            ? React.cloneElement(stripFontFamilyDeep(child, `${path}.${i}`), { key: `${path}.${i}` })
+            ? React.cloneElement(stripFontFamilyDeep(child, `${path}.${i}`) as any, {
+                key: `${path}.${i}`,
+              })
             : stripFontFamilyDeep(child, `${path}.${i}`)
         );
       } else {
         props.children = stripFontFamilyDeep(props.children, `${path}.c`);
       }
     }
-    return React.cloneElement(node, { ...props, key: node.key ?? path });
+
+    return React.cloneElement(node, { ...props, key: (node as any).key ?? path } as any);
   }
+
   return node;
 }
 
