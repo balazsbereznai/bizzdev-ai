@@ -19,8 +19,8 @@ export default async function CompanyPage({
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // ✅ RSC-safe: read-only cookies
-      cookies: { get: (n) => cookieStore.get(n)?.value },
+      // RSC-safe: read-only cookies
+      cookies: { get: (n: string) => cookieStore.get(n)?.value },
     }
   )
 
@@ -37,7 +37,7 @@ export default async function CompanyPage({
   if (error || !company) {
     return (
       <section className="container-px mx-auto max-w-3xl py-10">
-        <div className="mx-auto max-w-2xl rounded-[--radius-lg] border border-[--color-border] bg-[--color-surface]/95 backdrop-blur-md shadow-[--shadow-1]">
+        <div className="mx-auto max-w-2xl rounded-[--radius-lg] border border-[--color-border] bg-[--color-surface]/95 backdrop-blur-md shadow-[--shadow-0]">
           <div className="card-header">
             <h1 className="text-2xl font-semibold text-[--color-primary]">Company</h1>
           </div>
@@ -46,10 +46,18 @@ export default async function CompanyPage({
               {error?.message || 'Not found or no access.'}
             </div>
             <div className="flex gap-2">
-              <BrandButton href="/companies/inventory" variant="outline" className="!py-2 !px-3 !border !border-[--primary] !text-[--primary] !bg-[--surface]/60 hover:!bg-[--surface]">
+              <BrandButton
+                href="/companies/inventory"
+                outline
+                className="!py-2 !px-3 !border !border-[--primary] !text-[--primary] bg-transparent"
+              >
                 Back to companies
               </BrandButton>
-              <BrandButton href="/dashboard/hub" variant="outline" className="!py-2 !px-3 !border !border-[--primary] !text-[--primary] !bg-[--surface]/60 hover:!bg-[--surface]">
+              <BrandButton
+                href="/dashboard/hub"
+                outline
+                className="!py-2 !px-3 !border !border-[--primary] !text-[--primary] bg-transparent"
+              >
                 Back to Hub
               </BrandButton>
             </div>
@@ -61,7 +69,7 @@ export default async function CompanyPage({
 
   return (
     <section className="container-px mx-auto max-w-3xl py-10">
-      <div className="mx-auto max-w-2xl rounded-[--radius-lg] border border-[--color-border] bg-[--color-surface]/95 backdrop-blur-md shadow-[--shadow-1]">
+      <div className="mx-auto max-w-2xl rounded-[--radius-lg] border border-[--color-border] bg-[--color-surface]/95 backdrop-blur-md shadow-[--shadow-0]">
         <div className="card-header">
           <h1 className="text-2xl font-semibold text-[--color-primary]">Company</h1>
         </div>
