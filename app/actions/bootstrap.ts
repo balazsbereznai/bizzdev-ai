@@ -21,25 +21,10 @@ export async function bootstrapUser({
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options?: Parameters<typeof cookieStore.set>[0] extends object ? Omit<Parameters<typeof cookieStore.set>[0], "name" | "value"> : any) {
-          // Next cookie API accepts an object; keep it no-op in UAT if mutation isn't needed
-          try {
-            // @ts-expect-error accommodate differing signatures across Next minor versions
-            cookieStore.set({ name, value, ...(options || {}) });
-          } catch {
-            // no-op on platforms that don't support setting here
-          }
-        },
-        remove(name: string, options?: any) {
-          try {
-            // @ts-expect-error accommodate differing signatures across Next minor versions
-            cookieStore.delete({ name, ...(options || {}) });
-          } catch {
-            // no-op
-          }
-        },
+        // UAT-only: we don't need to mutate cookies in this action
+        set() {},
+        remove() {},
       },
-      // NOTE: no `headers` here for @supabase/ssr v0.7.x
     }
   );
 
