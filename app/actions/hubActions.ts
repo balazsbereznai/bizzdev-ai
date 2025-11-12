@@ -47,31 +47,15 @@ async function getAuthClient(): Promise<SupabaseClient> {
 
   const store = await nextCookies();
 
+  // @supabase/ssr v0.7.x expects cookies object with get/set/remove only
   return createServerClient(url, anon, {
     cookies: {
       get(name: string) {
         return store.get(name)?.value;
       },
-      set(name: string, value: string, options?: Parameters<typeof store.set>[2]) {
-        try {
-          store.set(name, value, options);
-        } catch {}
-      },
-      remove(name: string, options?: Parameters<typeof store.set>[2]) {
-        try {
-          store.set(name, "", { ...options, maxAge: 0 });
-        } catch {}
-      },
-      getAll() {
-        return store.getAll();
-      },
-      setAll(items) {
-        items.forEach(({ name, value, options }) => {
-          try {
-            store.set(name, value, options);
-          } catch {}
-        });
-      },
+      // We only need to read cookies in this action; keep setters as no-ops for type compatibility
+      set() {},
+      remove() {},
     },
   });
 }
@@ -157,7 +141,7 @@ export async function createRunFromHub(formData: FormData) {
   // monthly limit (10)
   const throttleUserId = await enforceMonthlyRunLimit(supabase, 10);
 
-  // Fetch selected records (RLS-scoped) — use select("*") to avoid column drift issues
+  // Fetch selected records (RLS-scoped)
   const [
     { data: company, error: compErr },
     { data: product, error: prodErr },
@@ -226,7 +210,6 @@ export async function createRunFromHub(formData: FormData) {
 
   // Build flat + nested input for generate.ts
   const baseInput = {
-    // Flat identifiers
     company_name: companyName,
     product_name: productName,
     icp_name: icpName,
@@ -278,7 +261,6 @@ export async function createRunFromHub(formData: FormData) {
       tone: mapToneToSchema(tone),
       experience: mapExperienceToSchema(experience),
       motion: motion || undefined,
-      // NEW: also include inside preferences
       output_language: outputLanguage || undefined,
     },
     meta: {
@@ -296,6 +278,7 @@ export async function createRunFromHub(formData: FormData) {
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", runId);
 
+    const throttleUserId = (await supabase.auth.getUser()).data.user!.id;
     await logSuccessfulRun(supabase, throttleUserId);
   } catch (err: any) {
     console.error("generatePlaybookAction error:", err);
