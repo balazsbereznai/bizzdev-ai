@@ -41,9 +41,9 @@ async function supabaseServer() {
 }
 
 /* ---------------------------------------------------------
-   Brand palette (same one used before)
+   Brand palette (typed loosely to satisfy mdToPdfNodes)
 --------------------------------------------------------- */
-const brand = {
+const brand: Record<string, string> = {
   border: "#d9e1ec",
   chart1: "#b0d1fa",
   chart2: "#e0edfd",
@@ -78,15 +78,16 @@ function ensureKeys(node: unknown, path = "k"): any {
     const element = node as React.ReactElement;
     const props: Record<string, unknown> = { ...(element.props ?? {}) };
 
-    if (props.children !== undefined) {
-      if (Array.isArray(props.children)) {
-        props.children = (props.children as unknown[]).map((child, i) =>
+    if ((props as any).children !== undefined) {
+      const children = (props as any).children;
+      if (Array.isArray(children)) {
+        (props as any).children = children.map((child: unknown, i: number) =>
           React.isValidElement(child as any)
             ? React.cloneElement(ensureKeys(child, `${path}.${i}`), { key: `${path}.${i}` })
             : ensureKeys(child, `${path}.${i}`)
         );
       } else {
-        props.children = ensureKeys(props.children, `${path}.c`);
+        (props as any).children = ensureKeys(children, `${path}.c`);
       }
     }
     return React.cloneElement(element, { ...props, key: (element.key as any) ?? path });
@@ -114,17 +115,18 @@ function stripFontFamilyDeep(node: unknown, path = "n"): any {
       return st;
     };
 
-    if (props.style) props.style = normalizeStyle(props.style);
+    if ((props as any).style) (props as any).style = normalizeStyle((props as any).style);
 
-    if (props.children !== undefined) {
-      if (Array.isArray(props.children)) {
-        props.children = (props.children as unknown[]).map((child, i) =>
+    if ((props as any).children !== undefined) {
+      const children = (props as any).children;
+      if (Array.isArray(children)) {
+        (props as any).children = children.map((child: unknown, i: number) =>
           React.isValidElement(child as any)
             ? React.cloneElement(stripFontFamilyDeep(child, `${path}.${i}`), { key: `${path}.${i}` })
             : stripFontFamilyDeep(child, `${path}.${i}`)
         );
       } else {
-        props.children = stripFontFamilyDeep(props.children, `${path}.c`);
+        (props as any).children = stripFontFamilyDeep(children, `${path}.c`);
       }
     }
 
@@ -168,7 +170,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
   const markdown = (doc.content as string) ?? "";
 
   // Render markdown → react-pdf nodes with brand palette
-  const rawNodes = await mdToPdfNodes(markdown, brand);
+  // Cast brand to any to satisfy differing type shapes across builds.
+  const rawNodes = await mdToPdfNodes(markdown, brand as any);
   let content = ensureKeys(rawNodes);
 
   const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
@@ -176,7 +179,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
   try {
     const element = createPdfDoc({ title: doc.title }, content);
     const raw = await pdf(element).toBuffer();
-    // TS sometimes thinks toBuffer() is a stream; in Node it's Buffer/Uint8Array.
     const bytes = raw as unknown as Uint8Array;
 
     return new Response(bytes, {
@@ -188,7 +190,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
       },
     });
   } catch (e: any) {
-    // Fallback: strip unknown font families and try again
     if (typeof e?.message === "string" && e.message.includes("Font family not registered")) {
       const stripped = stripFontFamilyDeep(content);
       const element = createPdfDoc({ title: doc.title }, stripped);
