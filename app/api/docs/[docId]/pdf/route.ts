@@ -1,38 +1,37 @@
 // app/api/docs/[docId]/pdf/route.ts
-import { cookies } from "next/headers";
+import { cookies as nextCookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { mdToPdfNodes } from "@/lib/markdownToPdf";
 import { Document, Page, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import React from "react";
-import "@/pdf/PlaybookPDF"; // registers fonts/theme for react-pdf
-
-export const runtime = "nodejs";
+import "@/pdf/PlaybookPDF"; // registers fonts/theme
 
 /* ---------------------------------------------------------
-   Supabase helper (Next 15 cookie API – minimal methods only)
+   Supabase helper (Next 15 cookie API safe)
 --------------------------------------------------------- */
 async function supabaseServer() {
-  const store = await cookies();
+  const cookieStore = await nextCookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return store.get(name)?.value;
+          return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options?: Parameters<typeof store.set>[2]) {
+        set(name: string, value: string, options?: any) {
           try {
-            store.set(name, value, options);
+            // Accept both legacy and new signatures across minor versions.
+            (cookieStore as any).set(name, value, options ?? {});
           } catch {
-            // noop in environments that don't permit mutation
+            /* no-op */
           }
         },
-        remove(name: string, options?: Parameters<typeof store.set>[2]) {
+        remove(name: string, options?: any) {
           try {
-            store.set(name, "", { ...options, maxAge: 0 });
+            (cookieStore as any).set(name, "", { ...(options ?? {}), maxAge: 0 });
           } catch {
-            // noop
+            /* no-op */
           }
         },
       },
@@ -41,7 +40,7 @@ async function supabaseServer() {
 }
 
 /* ---------------------------------------------------------
-   Brand palette (typed loosely to satisfy mdToPdfNodes)
+   Brand palette (loose typing for renderer)
 --------------------------------------------------------- */
 const brand: Record<string, string> = {
   border: "#d9e1ec",
@@ -54,8 +53,13 @@ const brand: Record<string, string> = {
 };
 
 /* ---------------------------------------------------------
-   Misc helpers
+   PDF render helpers
 --------------------------------------------------------- */
+const styles = StyleSheet.create({
+  page: { paddingTop: 40, paddingBottom: 40, paddingHorizontal: 48 },
+  defaultText: { fontSize: 11, lineHeight: 1.4, color: "#2a2a2a" },
+});
+
 function safeFilename(s: string) {
   return (s || "document")
     .replace(/[^\p{L}\p{N}\s\-_]+/gu, "")
@@ -64,73 +68,53 @@ function safeFilename(s: string) {
     .slice(0, 64);
 }
 
-const styles = StyleSheet.create({
-  page: { paddingTop: 40, paddingBottom: 40, paddingHorizontal: 48 },
-  defaultText: { fontSize: 11, lineHeight: 1.4, color: "#2a2a2a" },
-});
-
-/**
- * Ensure every React node has stable keys (react-pdf benefits from this).
- */
-function ensureKeys(node: unknown, path = "k"): any {
+function ensureKeys(node: any, path = "k"): any {
   if (Array.isArray(node)) return node.map((c, i) => ensureKeys(c, `${path}.${i}`));
-  if (React.isValidElement(node as any)) {
-    const element = node as React.ReactElement;
-    const props: Record<string, unknown> = { ...(element.props ?? {}) };
-
-    if ((props as any).children !== undefined) {
-      const children = (props as any).children;
-      if (Array.isArray(children)) {
-        (props as any).children = children.map((child: unknown, i: number) =>
-          React.isValidElement(child as any)
+  if (React.isValidElement(node)) {
+    const props: any = { ...node.props };
+    if (props.children !== undefined) {
+      if (Array.isArray(props.children)) {
+        props.children = props.children.map((child: any, i: number) =>
+          React.isValidElement(child)
             ? React.cloneElement(ensureKeys(child, `${path}.${i}`), { key: `${path}.${i}` })
             : ensureKeys(child, `${path}.${i}`)
         );
       } else {
-        (props as any).children = ensureKeys(children, `${path}.c`);
+        props.children = ensureKeys(props.children, `${path}.c`);
       }
     }
-    return React.cloneElement(element, { ...props, key: (element.key as any) ?? path });
+    return React.cloneElement(node, { ...props, key: node.key ?? path });
   }
   return node;
 }
 
-/**
- * Remove any fontFamily declarations deeply to avoid "Font family not registered" crashes.
- */
-function stripFontFamilyDeep(node: unknown, path = "n"): any {
+function stripFontFamilyDeep(node: any, path = "n"): any {
   if (Array.isArray(node)) return node.map((c, i) => stripFontFamilyDeep(c, `${path}.${i}`));
-  if (React.isValidElement(node as any)) {
-    const element = node as React.ReactElement;
-    const props: Record<string, unknown> = { ...(element.props ?? {}) };
-
-    const normalizeStyle = (st: unknown): unknown => {
+  if (React.isValidElement(node)) {
+    const props: any = { ...node.props };
+    const normalizeStyle = (st: any): any => {
       if (!st) return st;
       if (Array.isArray(st)) return st.map(normalizeStyle);
       if (typeof st === "object") {
-        const next = { ...(st as Record<string, unknown>) };
-        if ("fontFamily" in next) delete next.fontFamily;
+        const next = { ...st };
+        if ("fontFamily" in next) delete (next as any).fontFamily;
         return next;
       }
       return st;
     };
-
-    if ((props as any).style) (props as any).style = normalizeStyle((props as any).style);
-
-    if ((props as any).children !== undefined) {
-      const children = (props as any).children;
-      if (Array.isArray(children)) {
-        (props as any).children = children.map((child: unknown, i: number) =>
-          React.isValidElement(child as any)
+    if (props.style) props.style = normalizeStyle(props.style);
+    if (props.children !== undefined) {
+      if (Array.isArray(props.children)) {
+        props.children = props.children.map((child: any, i: number) =>
+          React.isValidElement(child)
             ? React.cloneElement(stripFontFamilyDeep(child, `${path}.${i}`), { key: `${path}.${i}` })
             : stripFontFamilyDeep(child, `${path}.${i}`)
         );
       } else {
-        (props as any).children = stripFontFamilyDeep(children, `${path}.c`);
+        props.children = stripFontFamilyDeep(props.children, `${path}.c`);
       }
     }
-
-    return React.cloneElement(element, { ...props, key: (element.key as any) ?? path });
+    return React.cloneElement(node, { ...props, key: node.key ?? path });
   }
   return node;
 }
@@ -167,21 +151,34 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
     });
   }
 
-  const markdown = (doc.content as string) ?? "";
-
-  // Render markdown → react-pdf nodes with brand palette
-  // Cast brand to any to satisfy differing type shapes across builds.
-  const rawNodes = await mdToPdfNodes(markdown, brand as any);
-  let content = ensureKeys(rawNodes);
-
-  const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
+  const markdown = doc.content ?? "";
 
   try {
-    const element = createPdfDoc({ title: doc.title }, content);
-    const raw = await pdf(element).toBuffer();
-    const bytes = raw as unknown as Uint8Array;
+    // Render markdown → react-pdf nodes with brand palette
+    const rawNodes = await mdToPdfNodes(markdown, brand as any);
+    let content: any = ensureKeys(rawNodes);
 
-    return new Response(bytes, {
+    const buildBlob = async (nodeTree: any) => {
+      const element = createPdfDoc({ title: doc.title }, nodeTree);
+      const raw: unknown = await pdf(element).toBuffer(); // Node Buffer in server runtime
+      // Wrap into a Blob so TS/Fetch typing is always happy
+      return new Blob([raw as any], { type: "application/pdf" });
+    };
+
+    let blob: Blob;
+    try {
+      blob = await buildBlob(content);
+    } catch (e: any) {
+      if (typeof e?.message === "string" && e.message.includes("Font family not registered")) {
+        const stripped = stripFontFamilyDeep(content);
+        blob = await buildBlob(stripped);
+      } else {
+        throw e;
+      }
+    }
+
+    const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
+    return new Response(blob, {
       status: 200,
       headers: {
         "content-type": "application/pdf",
@@ -190,22 +187,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
       },
     });
   } catch (e: any) {
-    if (typeof e?.message === "string" && e.message.includes("Font family not registered")) {
-      const stripped = stripFontFamilyDeep(content);
-      const element = createPdfDoc({ title: doc.title }, stripped);
-      const raw = await pdf(element).toBuffer();
-      const bytes = raw as unknown as Uint8Array;
-
-      return new Response(bytes, {
-        status: 200,
-        headers: {
-          "content-type": "application/pdf",
-          "content-disposition": `attachment; filename="${filename}"`,
-          "cache-control": "no-store",
-        },
-      });
-    }
-
     return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
       status: 500,
       headers: { "content-type": "application/json" },
