@@ -1,7 +1,7 @@
-// app/runs/[id]/page.tsx
+// app/runs/[id]/page.tsx — FULL REPLACE
 import { supabaseServer } from "@/lib/supabase/server";
 import UtilityBar from "@/components/UtilityBar";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardBody, CardHeader } from "@/components/ui/card"; // ← fix: lowercase file name
 import NewDocButton from "@/components/NewDocButton";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,6 @@ export default async function RunDetailPage({
   const { id: runId } = await params;
   const supabase = await supabaseServer();
 
-  // Load run (optional) + docs for this run
   const { data: run } = await supabase
     .from("runs")
     .select("id,title,status,updated_at")
