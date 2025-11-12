@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { mdToPdfNodes } from "@/lib/markdownToPdf";
 import { Document, Page, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import React from "react";
-import "@/pdf/PlaybookPDF"; // font/theme registration
+import "@/pdf/PlaybookPDF";
 
 /* ---------------------------------------------------------
    Supabase helper
@@ -14,7 +14,6 @@ async function supabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // @supabase/ssr v0.7.x expects cookies object with get/set/remove only
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
@@ -27,7 +26,7 @@ async function supabaseServer() {
 }
 
 /* ---------------------------------------------------------
-   Brand palette (same one used before)
+   Brand palette
 --------------------------------------------------------- */
 const brand = {
   border: "#d9e1ec",
@@ -58,7 +57,6 @@ const styles = StyleSheet.create({
 function ensureKeys(node: any, path = "k"): any {
   if (Array.isArray(node)) return node.map((c, i) => ensureKeys(c, `${path}.${i}`));
   if (React.isValidElement(node)) {
-    // Guard: only spread an object
     const props: Record<string, any> = { ...(((node as any).props ?? {}) as object) };
 
     if (props.children !== undefined) {
@@ -80,10 +78,9 @@ function ensureKeys(node: any, path = "k"): any {
 function stripFontFamilyDeep(node: any, path = "n"): any {
   if (Array.isArray(node)) return node.map((c, i) => stripFontFamilyDeep(c, `${path}.${i}`));
   if (React.isValidElement(node)) {
-    // Guard: only spread an object
     const props: Record<string, any> = { ...(((node as any).props ?? {}) as object) };
 
-    const normalizeStyle = (st: any) => {
+    const normalizeStyle = (st: any): any => {
       if (!st) return st;
       if (Array.isArray(st)) return st.map(normalizeStyle);
       if (typeof st === "object") {
@@ -93,6 +90,7 @@ function stripFontFamilyDeep(node: any, path = "n"): any {
       }
       return st;
     };
+
     if (props.style) props.style = normalizeStyle(props.style);
 
     if (props.children !== undefined) {
