@@ -1,3 +1,4 @@
+// app/icps/inventory/page.tsx
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { redirect } from 'next/navigation'
@@ -10,17 +11,22 @@ export default async function ICPInventoryPage({
   searchParams,
 }: { searchParams: Promise<{ err?: string }> }) {
   const sp = await searchParams
+
   const cookieStore = await cookies()
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: {
-      get: n => cookieStore.get(n)?.value,
-      set: (n,v,o) => cookieStore.set({ name:n, value:v, ...o }),
-      remove: (n,o) => cookieStore.delete({ name:n, ...o }),
-    }}
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      // RSC-safe: read-only cookie adapter
+      cookies: {
+        get: (n: string) => cookieStore.get(n)?.value,
+      },
+    }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/signin')
 
   const { data, error } = await supabase
@@ -38,51 +44,67 @@ export default async function ICPInventoryPage({
         <div className="flex items-center gap-3">
           <BrandButton
             href="/dashboard/hub"
-            variant="outline"
+            outline
             className="!py-2 !px-3 !border !border-[--primary] !text-[--primary] !bg-[--surface]/60 hover:!bg-[--surface] hover:shadow-[--shadow-1]"
           >
             Back to Hub
           </BrandButton>
-          <form action={async () => {
-            'use server'
-            const cs = await cookies()
-            const sb = createServerClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-              { cookies: {
-                get: n => cs.get(n)?.value,
-                set: (n,v,o) => cs.set({ name:n, value:v, ...o }),
-                remove: (n,o) => cs.delete({ name:n, ...o }),
-              }}
-            )
-            const { data: { user } } = await sb.auth.getUser()
-            if (!user) redirect('/signin')
 
-            // ensure org
-            let orgId: string | undefined
-            const { data: orgRow } = await sb.from('organizations').select('id')
-              .eq('created_by', user.id).order('updated_at',{ascending:false}).limit(1).maybeSingle()
-            if (!orgRow?.id) {
-              const { data: createdOrg } = await sb
+          <form
+            action={async () => {
+              'use server'
+              const cs = await cookies()
+              const sb = createServerClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                {
+                  // Server Action: we still only need read access
+                  cookies: {
+                    get: (n: string) => cs.get(n)?.value,
+                  },
+                }
+              )
+
+              const {
+                data: { user },
+              } = await sb.auth.getUser()
+              if (!user) redirect('/signin')
+
+              // ensure org
+              let orgId: string | undefined
+              const { data: orgRow } = await sb
                 .from('organizations')
-                .insert({ name: 'My Company', created_by: user.id })
-                .select('id').single()
-              orgId = createdOrg?.id
-            } else orgId = orgRow.id
+                .select('id')
+                .eq('created_by', user.id)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
 
-            const { data: row, error: insErr } = await sb
-              .from('icps')
-              .insert({ name: '', created_by: user.id, org_id: orgId })
-              .select('id').single()
+              if (!orgRow?.id) {
+                const { data: createdOrg } = await sb
+                  .from('organizations')
+                  .insert({ name: 'My Company', created_by: user.id })
+                  .select('id')
+                  .single()
+                orgId = createdOrg?.id
+              } else {
+                orgId = orgRow.id
+              }
 
-            if (insErr || !row)
-              redirect(`/icps/inventory?err=${encodeURIComponent(insErr?.message ?? 'insert_failed')}`)
+              const { data: row, error: insErr } = await sb
+                .from('icps')
+                .insert({ name: '', created_by: user.id, org_id: orgId })
+                .select('id')
+                .single()
 
-            redirect(`/icps/${row.id}?new=1`)
-          }}>
-            <BrandButton
-              type="submit"
-              className="!py-2 !px-3 !text-[--color-cream]"
-            >
+              if (insErr || !row) {
+                redirect(`/icps/inventory?err=${encodeURIComponent(insErr?.message ?? 'insert_failed')}`)
+              }
+
+              redirect(`/icps/${row.id}?new=1`)
+            }}
+          >
+            <BrandButton type="submit" className="!py-2 !px-3 !text-[--color-cream]">
               Create New
             </BrandButton>
           </form>
