@@ -19,7 +19,7 @@ export default async function InventoryInterceptCompany({
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: n => cookieStore.get(n)?.value } }
+    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
   )
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,13 +38,14 @@ export default async function InventoryInterceptCompany({
     <ModalHost title={`Company — ${company.company_name ?? ''}`} backHref="/companies/inventory">
       <ModalActionsPortal>
         <ModalDeleteButton table="company_profile" id={id} afterHref="/companies/inventory" />
-        <ModalSaveExitButton to="/companies/inventory" />
+        <ModalSaveExitButton onDoneHref="/companies/inventory" />
       </ModalActionsPortal>
 
       <CompanyForm
         mode="edit"
         id={company.id}
         minimal
+        hideFooterActions
         initial={{
           company_name: company.company_name ?? '',
           industry: company.industry ?? '',
