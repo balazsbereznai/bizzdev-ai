@@ -22,15 +22,16 @@ async function requireUserAndOrg(): Promise<{ userId: string; org: Org | null }>
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // RSC-safe: read-only cookie adapter
       cookies: {
         get: (n: string) => cookieStore.get(n)?.value,
-        set: (n: string, v: string, o: any) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n: string, o: any) => cookieStore.delete({ name: n, ...o }),
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/signin')
 
   // Latest org for this user
@@ -78,9 +79,13 @@ export default async function IntakePage() {
 
       <div className="flex items-center gap-3">
         <form action={doneAndReturnAction}>
-          <button className="btn" type="submit">Done & Return to Profile</button>
+          <button className="btn" type="submit">
+            Done & Return to Profile
+          </button>
         </form>
-        <a href="/profile" className="btn-secondary">Cancel</a>
+        <a href="/profile" className="btn-secondary">
+          Cancel
+        </a>
       </div>
     </div>
   )
