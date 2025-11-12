@@ -1,7 +1,7 @@
 // app/layout.tsx — FULL REPLACE
 import "@/app/globals.css";
 import React from "react";
-import Topbar from "@/components/topbar";
+import Topbar from "@/components/Topbar";
 import { ToastProvider } from "@/components/ui/Toast";
 
 // Keep your existing dynamic export as-is
