@@ -1,3 +1,4 @@
+// lib/ai.ts
 import OpenAI from "openai";
 
 // Force no-store so Next.js won't try to cache the OpenAI fetch
@@ -6,7 +7,6 @@ const noStoreFetch: typeof fetch = (url, options) =>
 
 export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
-  // @ts-expect-error openai sdk passes this to undici/fetch
   fetch: noStoreFetch,
 });
 
