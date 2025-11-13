@@ -1,13 +1,21 @@
+// app/runs/[id]/docs/[docId]/DocEditorClient.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { updateDocAction } from "@/app/actions/docActions";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 
 // Client-only live preview (no SSR) to ensure instant updates while typing
-const MarkdownPreview = dynamic(() => import("@/components/MarkdownPreview"), { ssr: false });
+const MarkdownPreview = dynamic(
+  () => import("@/components/MarkdownPreview"),
+  { ssr: false }
+);
 
 type Doc = {
   id: string;
@@ -92,7 +100,11 @@ export default function DocEditorClient({
 
   // Unsaved changes detector
   const dirty = useMemo(
-    () => editMode && doc && (titleDraft !== (doc.title ?? "") || markdownDraft !== (doc.markdown ?? "")),
+    () =>
+      editMode &&
+      doc &&
+      (titleDraft !== (doc.title ?? "") ||
+        markdownDraft !== (doc.markdown ?? "")),
     [editMode, doc, titleDraft, markdownDraft]
   );
 
@@ -177,7 +189,9 @@ export default function DocEditorClient({
   // Regenerate
   const handleRegenerate = async () => {
     try {
-      const res = await fetch(`/api/docs/${docId}/regenerate`, { method: "POST" });
+      const res = await fetch(`/api/docs/${docId}/regenerate`, {
+        method: "POST",
+      });
       const data = await res.json();
       if (data?.error) alert(data.error);
       else {
@@ -205,7 +219,11 @@ export default function DocEditorClient({
           ? "bg-red-100 text-red-800"
           : "")
       }
-      title={saveState === "saved" && lastSavedAt ? `Saved at ${lastSavedAt}` : undefined}
+      title={
+        saveState === "saved" && lastSavedAt
+          ? `Saved at ${lastSavedAt}`
+          : undefined
+      }
     >
       {saveState === "saving"
         ? "Saving…"
@@ -222,102 +240,122 @@ export default function DocEditorClient({
   const showSplit = editMode && preview;
 
   return (
-    <main className="mx-auto max-w-content container-px py-6">
-      <Card>
-        <CardHeader
-          title={
-            editMode ? (
-              <input
-                type="text"
-                className="border rounded px-2 py-1 w-full"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                placeholder="Document title"
-              />
-            ) : (
-              doc?.title ?? "Document"
-            )
-          }
-          subtitle={
-            doc
-              ? `Last updated: ${new Date(doc.updated_at).toLocaleString()}`
-              : "Loading…"
-          }
-          right={
-            <div className="flex flex-wrap gap-2 justify-end items-center">
-              {statusChip}
+    <main className="container-px mx-auto max-w-content py-6">
+      <div className="rounded-2xl border border-[--color-border] bg-[--color-surface] shadow-[--shadow-0]">
+        {/* Header */}
+        <div className="flex flex-col gap-2 border-b border-[--color-border] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-base font-medium">
               {editMode ? (
-                <>
-                  <button
-                    onClick={() => setPreview((v) => !v)}
-                    className={`toolbar-btn ${preview ? "bg-[--surface-2]" : ""}`}
-                    title="Toggle live preview"
-                  >
-                    {preview ? "Hide Preview" : "Preview"}
-                  </button>
-                  <button
-                    onClick={handleSaveClick}
-                    disabled={pending || !dirty}
-                    className="toolbar-btn"
-                    title={dirty ? "Save changes (⌘/Ctrl+S)" : "No changes to save"}
-                  >
-                    {pending ? "Saving…" : "Save"}
-                  </button>
-                  <button onClick={cancelEdit} className="toolbar-btn">
-                    Cancel
-                  </button>
-                </>
+                <input
+                  type="text"
+                  className="w-full rounded border px-2 py-1 text-sm"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  placeholder="Document title"
+                />
               ) : (
-                <>
-                  <button onClick={beginEdit} className="toolbar-btn">
-                    Edit
-                  </button>
-                  <button onClick={handleExportPdf} className="toolbar-btn">
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleRegenerate}
-                    className="toolbar-btn bg-[--primary] text-white/95"
-                  >
-                    Regenerate
-                  </button>
-                </>
+                doc?.title ?? "Document"
               )}
-              <a href={`/runs/${runId}`} className="toolbar-btn">
-                Back to Run
-              </a>
             </div>
-          }
-        />
+            <div className="text-xs text-[--muted]">
+              {doc
+                ? `Last updated: ${new Date(
+                    doc.updated_at
+                  ).toLocaleString()}`
+                : "Loading…"}
+            </div>
+          </div>
 
-        <CardBody>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {statusChip}
+            {editMode ? (
+              <>
+                <button
+                  onClick={() => setPreview((v) => !v)}
+                  className={`toolbar-btn ${
+                    preview ? "bg-[--surface-2]" : ""
+                  }`}
+                  title="Toggle live preview"
+                >
+                  {preview ? "Hide Preview" : "Preview"}
+                </button>
+                <button
+                  onClick={handleSaveClick}
+                  disabled={pending || !dirty}
+                  className="toolbar-btn"
+                  title={
+                    dirty
+                      ? "Save changes (⌘/Ctrl+S)"
+                      : "No changes to save"
+                  }
+                >
+                  {pending ? "Saving…" : "Save"}
+                </button>
+                <button onClick={cancelEdit} className="toolbar-btn">
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={beginEdit} className="toolbar-btn">
+                  Edit
+                </button>
+                <button
+                  onClick={handleExportPdf}
+                  className="toolbar-btn"
+                >
+                  Export PDF
+                </button>
+                <button
+                  onClick={handleRegenerate}
+                  className="toolbar-btn bg-[--primary] text-white/95"
+                >
+                  Regenerate
+                </button>
+              </>
+            )}
+            <a href={`/runs/${runId}`} className="toolbar-btn">
+              Back to Run
+            </a>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-4 py-4">
           {loading ? (
-            <p className="opacity-80 text-sm">Loading…</p>
+            <p className="text-sm opacity-80">Loading…</p>
           ) : error ? (
             <pre className="text-xs text-red-600">
               {JSON.stringify(error, null, 2)}
             </pre>
           ) : showSplit ? (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col">
-                <label className="text-xs opacity-70 mb-2">Editor</label>
+                <label className="mb-2 text-xs opacity-70">
+                  Editor
+                </label>
                 <textarea
-                  className="w-full min-h-[480px] border rounded p-2 font-mono text-sm"
+                  className="min-h-[480px] w-full rounded border p-2 font-mono text-sm"
                   value={markdownDraft}
-                  onChange={(e) => setMarkdownDraft(e.target.value)}
+                  onChange={(e) =>
+                    setMarkdownDraft(e.target.value)
+                  }
                   placeholder="Write markdown…"
                 />
               </div>
               <div className="flex flex-col">
-                <label className="text-xs opacity-70 mb-2">Live Preview</label>
-                <div className="border rounded p-3 min-h-[480px] bg-[--surface]">
+                <label className="mb-2 text-xs opacity-70">
+                  Live Preview
+                </label>
+                <div className="min-h-[480px] rounded border bg-[--surface] p-3">
                   <MarkdownPreview markdown={markdownDraft} />
                 </div>
               </div>
             </div>
           ) : editMode ? (
             <textarea
-              className="w-full min-h-[520px] border rounded p-2 font-mono text-sm"
+              className="min-h-[520px] w-full rounded border p-2 font-mono text-sm"
               value={markdownDraft}
               onChange={(e) => setMarkdownDraft(e.target.value)}
               placeholder="Write markdown…"
@@ -325,8 +363,8 @@ export default function DocEditorClient({
           ) : (
             <MarkdownPreview markdown={doc?.markdown ?? ""} />
           )}
-        </CardBody>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }
