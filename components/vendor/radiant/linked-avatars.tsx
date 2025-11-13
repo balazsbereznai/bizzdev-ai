@@ -1,8 +1,27 @@
+// components/vendor/radiant/linked-avatars.tsx
 'use client'
 
-import { CheckIcon } from '@heroicons/react/16/solid'
 import { clsx } from 'clsx'
 import { motion } from 'framer-motion'
+import * as React from 'react'
+
+// Simple inline check icon to avoid external @heroicons dependency
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        fillRule="evenodd"
+        d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.25-3.25a1 1 0 111.414-1.414L8.5 11.586l6.543-6.543a1 1 0 011.414 0z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
 
 const transition = {
   duration: 0.75,
@@ -20,8 +39,13 @@ function Rings() {
         'mask-[linear-gradient(to_bottom,black_90%,transparent),radial-gradient(circle,rgba(0,0,0,1)_0%,rgba(0,0,0,0)_100%)] mask-intersect',
       )}
     >
-      {Array.from(Array(42).keys()).map((n) => (
+      {Array.from({ length: 42 }).map((_, n) => (
         <motion.circle
+          key={n}
+          cx="250"
+          cy="250"
+          r={n * 14 + 4}
+          className="stroke-white"
           variants={{
             idle: {
               scale: 1,
@@ -33,11 +57,6 @@ function Rings() {
               transition: { ...transition, delay: n * 0.05 },
             },
           }}
-          key={n}
-          cx="250"
-          cy="250"
-          r={n * 14 + 4}
-          className="stroke-white"
         />
       ))}
     </svg>
@@ -57,7 +76,7 @@ function Checkmark() {
         }}
         className="flex size-6 items-center justify-center rounded-full bg-linear-to-t from-green-500 to-green-300 shadow-sm"
       >
-        <CheckIcon className="size-4 fill-white" />
+        <CheckIcon className="size-4 text-white" />
       </motion.div>
     </div>
   )
@@ -91,3 +110,4 @@ export function LinkedAvatars() {
     </div>
   )
 }
+
