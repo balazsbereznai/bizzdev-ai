@@ -1,7 +1,8 @@
+// components/vendor/radiant/testimonials.tsx
 'use client'
 
 import * as Headless from '@headlessui/react'
-import { ArrowLongRightIcon } from '@heroicons/react/20/solid'
+// Removed heroicons import – we inline a tiny arrow icon instead
 import { clsx } from 'clsx'
 import {
   MotionValue,
@@ -61,6 +62,25 @@ const testimonials = [
   },
 ]
 
+// Simple inline right-arrow icon to replace ArrowLongRightIcon
+function ArrowLongRightIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M4 12h14" />
+      <path d="M13 6l5 6-5 6" />
+    </svg>
+  )
+}
+
 function TestimonialCard({
   name,
   title,
@@ -116,7 +136,7 @@ function TestimonialCard({
       ref={ref}
       style={{ opacity }}
       {...props}
-      className="relative flex aspect-9/16 w-72 shrink-0 snap-start scroll-ml-(--scroll-padding) flex-col justify-end overflow-hidden rounded-3xl sm:aspect-3/4 sm:w-96"
+      className="relative flex aspect-9/16 w-72 shrink-0 snap-start scroll-ml-(--scroll-padding) flex-col justify-end overflow-hidden rounde$"
     >
       <img
         alt=""
@@ -125,7 +145,7 @@ function TestimonialCard({
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 rounded-3xl bg-linear-to-t from-black from-[calc(7/16*100%)] ring-1 ring-gray-950/10 ring-inset sm:from-25%"
+        className="absolute inset-0 rounded-3xl bg-linear-to-t from-black from-[calc(7/16*100%)] ring-1 ring-gray-950/10 ring-inset sm:from-$"
       />
       <figure className="relative p-10">
         <blockquote>
@@ -179,13 +199,17 @@ export function Testimonials() {
   let [activeIndex, setActiveIndex] = useState(0)
 
   useMotionValueEvent(scrollX, 'change', (x) => {
-    setActiveIndex(Math.floor(x / scrollRef.current!.children[0].clientWidth))
+    if (!scrollRef.current || !scrollRef.current.children[0]) return
+    const width = (scrollRef.current.children[0] as HTMLElement).clientWidth
+    if (!width) return
+    setActiveIndex(Math.floor(x / width))
   })
 
   function scrollTo(index: number) {
+    if (!scrollRef.current || !scrollRef.current.children[0]) return
     let gap = 32
-    let width = (scrollRef.current!.children[0] as HTMLElement).offsetWidth
-    scrollRef.current!.scrollTo({ left: (width + gap) * index })
+    let width = (scrollRef.current.children[0] as HTMLElement).offsetWidth
+    scrollRef.current.scrollTo({ left: (width + gap) * index })
   }
 
   return (
@@ -204,7 +228,7 @@ export function Testimonials() {
           'mt-16 flex gap-8 px-(--scroll-padding)',
           '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           'snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth',
-          '[--scroll-padding:max(--spacing(6),calc((100vw-(var(--container-2xl)))/2))] lg:[--scroll-padding:max(--spacing(8),calc((100vw-(var(--container-7xl)))/2))]',
+          '[--scroll-padding:max(--spacing(6),calc((100vw-(var(--container-2xl)))/2))] lg:[--scroll-padding:max(--spacing(8),calc((100vw-(va$',
         ])}
       >
         {testimonials.map(({ img, name, title, quote }, testimonialIndex) => (
@@ -247,3 +271,4 @@ export function Testimonials() {
     </div>
   )
 }
+
