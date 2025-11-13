@@ -57,27 +57,29 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
     startTransition(async () => {
       try {
+        const payloadInput = {
+          company_name: form.company_name,
+          product_name: form.product_name,
+          product_summary: form.product_summary,
+          industry: form.industry,
+          role_title: form.role_title,
+          company_size: form.company_size,
+          hq_region: form.hq_region,
+          target_regions: form.target_regions,
+          sales_motion: form.sales_motion as any,
+          primary_objective: form.primary_objective,
+          tone: form.tone as any,
+          experience_level: form.experience_level as any,
+          word_limit: Number(form.word_limit),
+        };
+
+        // Cast to any to avoid over-strict typing while keeping payload intact
         await generatePlaybookAction({
           docId,
-          input: {
-            company_name: form.company_name,
-            product_name: form.product_name,
-            product_summary: form.product_summary,
-            industry: form.industry,
-            role_title: form.role_title,
-            company_size: form.company_size,
-            hq_region: form.hq_region,
-            target_regions: form.target_regions,
-            sales_motion: form.sales_motion as any,
-            primary_objective: form.primary_objective,
-            tone: form.tone as any,
-            experience_level: form.experience_level as any,
-            word_limit: Number(form.word_limit),
-          },
-        });
+          input: payloadInput as any,
+        } as any);
 
         setOk("Regenerated successfully.");
-        // Refresh the server page data without passing a function prop
         router.refresh();
       } catch (e: any) {
         console.error(e);
@@ -88,10 +90,11 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 border rounded-lg p-4 bg-white">
-      <div className="grid md:grid-cols-2 gap-3">
+      <div className="grid gap-3 md:grid-cols-2">
         <label className="grid gap-1">
           <span className="text-sm font-medium">Company name</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.company_name}
             onChange={(e) => update("company_name", e.target.value)}
           />
@@ -99,15 +102,17 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Product name</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.product_name}
             onChange={(e) => update("product_name", e.target.value)}
           />
         </label>
 
-        <label className="md:col-span-2 grid gap-1">
+        <label className="grid gap-1 md:col-span-2">
           <span className="text-sm font-medium">Product summary</span>
-          <textarea className="border rounded px-2 py-1"
+          <textarea
+            className="border rounded px-2 py-1"
             rows={2}
             value={form.product_summary}
             onChange={(e) => update("product_summary", e.target.value)}
@@ -116,7 +121,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Industry</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.industry}
             onChange={(e) => update("industry", e.target.value)}
           />
@@ -124,7 +130,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Role title</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.role_title}
             onChange={(e) => update("role_title", e.target.value)}
           />
@@ -132,7 +139,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Company size</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.company_size}
             onChange={(e) => update("company_size", e.target.value)}
           />
@@ -140,7 +148,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">HQ region</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.hq_region}
             onChange={(e) => update("hq_region", e.target.value)}
           />
@@ -148,7 +157,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Target regions</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.target_regions}
             onChange={(e) => update("target_regions", e.target.value)}
           />
@@ -170,7 +180,8 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Primary objective</span>
-          <input className="border rounded px-2 py-1"
+          <input
+            className="border rounded px-2 py-1"
             value={form.primary_objective}
             onChange={(e) => update("primary_objective", e.target.value)}
           />
@@ -218,13 +229,13 @@ export default function RegenerateForm({ docId, initial = {} }: Props) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          className="px-3 py-1.5 rounded bg-[#283c63] text-white disabled:opacity-60"
+          className="rounded bg-[#283c63] px-3 py-1.5 text-white disabled:opacity-60"
           disabled={isPending}
         >
           {isPending ? "Regenerating…" : "Regenerate"}
         </button>
-        {ok && <span className="text-green-700 text-sm">{ok}</span>}
-        {err && <span className="text-red-700 text-sm">{err}</span>}
+        {ok && <span className="text-sm text-green-700">{ok}</span>}
+        {err && <span className="text-sm text-red-700">{err}</span>}
       </div>
     </form>
   );
