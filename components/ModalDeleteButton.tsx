@@ -23,7 +23,9 @@ export default function ModalDeleteButton({
 
   const onDelete = async () => {
     if (!id) return;
-    const ok = confirm('Are you sure you want to delete this item? This cannot be undone.');
+    const ok = confirm(
+      'Are you sure you want to delete this item? This cannot be undone.'
+    );
     if (!ok) return;
     try {
       setBusy(true);
@@ -42,7 +44,7 @@ export default function ModalDeleteButton({
     <BrandButton
       onClick={onDelete}
       disabled={busy}
-      variant="outline"
+      outline
       className="!py-2 !px-3 !border-red-400 !text-red-200 hover:!bg-red-500/10"
       title="Delete this item"
     >
