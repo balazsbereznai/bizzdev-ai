@@ -1,3 +1,4 @@
+// components/vendor/radiant/navbar.tsx
 'use client'
 
 import {
@@ -5,11 +6,11 @@ import {
   DisclosureButton,
   DisclosurePanel,
 } from '@headlessui/react'
-import { Bars2Icon } from '@heroicons/react/24/solid'
 import { motion } from 'framer-motion'
 import { Link } from './link'
 import { Logo } from './logo'
 import { PlusGrid, PlusGridItem, PlusGridRow } from './plus-grid'
+import * as React from 'react'
 
 const links = [
   { href: '/pricing', label: 'Pricing' },
@@ -17,6 +18,26 @@ const links = [
   { href: '/blog', label: 'Blog' },
   { href: '/login', label: 'Login' },
 ]
+
+// Simple inline Bars2Icon to avoid heroicons dependency
+function Bars2Icon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  )
+}
 
 function DesktopNav() {
   return (
@@ -52,6 +73,7 @@ function MobileNav() {
       <div className="flex flex-col gap-6 py-4">
         {links.map(({ href, label }, linkIndex) => (
           <motion.div
+            key={href}
             initial={{ opacity: 0, rotateX: -90 }}
             animate={{ opacity: 1, rotateX: 0 }}
             transition={{
@@ -59,7 +81,6 @@ function MobileNav() {
               ease: 'easeInOut',
               rotateX: { duration: 0.3, delay: linkIndex * 0.1 },
             }}
-            key={href}
           >
             <Link href={href} className="text-base font-medium text-gray-950">
               {label}
@@ -100,3 +121,4 @@ export function Navbar({ banner }: { banner?: React.ReactNode }) {
     </Disclosure>
   )
 }
+
