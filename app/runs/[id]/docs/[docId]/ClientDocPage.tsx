@@ -27,7 +27,9 @@ export default function ClientDocPage({ runId, docId, initial }: Props) {
     try {
       setBusy("regen");
       const t = toast.loading("Regenerating…");
-      const res = await fetch(`/api/runs/${runId}/docs/${docId}/regenerate`, { method: "POST" });
+      const res = await fetch(`/api/runs/${runId}/docs/${docId}/regenerate`, {
+        method: "POST",
+      });
       if (!res.ok) throw new Error(`Regenerate failed (${res.status})`);
       toast.success("Regenerated", { id: t });
     } catch (e: any) {
@@ -71,8 +73,33 @@ export default function ClientDocPage({ runId, docId, initial }: Props) {
     <AppShell
       utilityBar={
         <UtilityBar
-          onRegenerate={busy ? undefined : onRegenerate}
-          onExportPdf={busy ? undefined : onExportPdf}
+          left={
+            busy && (
+              <span className="ml-2 text-xs text-[--muted]">
+                …working
+              </span>
+            )
+          }
+          right={
+            <>
+              <button
+                type="button"
+                onClick={busy ? undefined : onRegenerate}
+                disabled={busy === "regen"}
+                className="btn-secondary !py-1.5 !px-3 text-xs"
+              >
+                {busy === "regen" ? "Regenerating…" : "Regenerate"}
+              </button>
+              <button
+                type="button"
+                onClick={busy ? undefined : onExportPdf}
+                disabled={busy === "pdf"}
+                className="btn !py-1.5 !px-3 text-xs"
+              >
+                {busy === "pdf" ? "Preparing PDF…" : "Export PDF"}
+              </button>
+            </>
+          }
         />
       }
     >
@@ -88,10 +115,6 @@ export default function ClientDocPage({ runId, docId, initial }: Props) {
               </>
             }
           />
-
-          {busy && (
-            <p className="mt-1 text-xs text-[--muted]">…working</p>
-          )}
 
           {hasContent ? (
             initial.html ? (
