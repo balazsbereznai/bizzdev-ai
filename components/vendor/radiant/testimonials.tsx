@@ -4,16 +4,8 @@
 import type React from "react";
 import * as Headless from "@headlessui/react";
 import { clsx } from "clsx";
-import {
-  MotionValue,
-  motion,
-  useMotionValueEvent,
-  useScroll,
-  useSpring,
-  type HTMLMotionProps,
-} from "framer-motion";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import useMeasure, { type RectReadOnly } from "react-use-measure";
+import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { useRef, useState } from "react";
 import { Container } from "./container";
 import { Link } from "./link";
 import { Heading, Subheading } from "./text";
@@ -85,59 +77,20 @@ type TestimonialCardProps = {
   name: string;
   title: string;
   children: React.ReactNode;
-  bounds: RectReadOnly;
-  scrollX: MotionValue<number>;
-} & HTMLMotionProps<"div">;
+} & React.ComponentProps<typeof motion.div>;
 
 function TestimonialCard({
   name,
   title,
   img,
   children,
-  bounds,
-  scrollX,
   ...props
 }: TestimonialCardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const computeOpacity = useCallback(() => {
-    const element = ref.current;
-    if (!element || bounds.width === 0) return 1;
-
-    const rect = element.getBoundingClientRect();
-
-    if (rect.left < bounds.left) {
-      const diff = bounds.left - rect.left;
-      const percent = diff / rect.width;
-      return Math.max(0.5, 1 - percent);
-    }
-
-    if (rect.right > bounds.right) {
-      const diff = rect.right - bounds.right;
-      const percent = diff / rect.width;
-      return Math.max(0.5, 1 - percent);
-    }
-
-    return 1;
-  }, [bounds.left, bounds.right, bounds.width]);
-
-  const opacity = useSpring(computeOpacity(), {
-    stiffness: 154,
-    damping: 23,
-  });
-
-  useLayoutEffect(() => {
-    opacity.set(computeOpacity());
-  }, [computeOpacity, opacity]);
-
-  useMotionValueEvent(scrollX, "change", () => {
-    opacity.set(computeOpacity());
-  });
-
   return (
     <motion.div
       ref={ref}
-      style={{ opacity }}
       {...props}
       className={clsx(
         "relative flex aspect-[9/16] w-72 shrink-0 snap-start",
@@ -202,7 +155,6 @@ function CallToAction() {
 export function Testimonials() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const { scrollX } = useScroll({ container: scrollRef });
-  const [setReferenceWindowRef, bounds] = useMeasure();
   const [activeIndex, setActiveIndex] = useState(0);
 
   useMotionValueEvent(scrollX, "change", (x) => {
@@ -222,7 +174,7 @@ export function Testimonials() {
   return (
     <div className="overflow-hidden py-32">
       <Container>
-        <div ref={setReferenceWindowRef}>
+        <div>
           <Subheading>What everyone is saying</Subheading>
           <Heading as="h3" className="mt-2">
             Trusted by professionals.
@@ -246,8 +198,6 @@ export function Testimonials() {
             name={name}
             title={title}
             img={img}
-            bounds={bounds}
-            scrollX={scrollX}
             onClick={() => scrollTo(testimonialIndex)}
           >
             {quote}
