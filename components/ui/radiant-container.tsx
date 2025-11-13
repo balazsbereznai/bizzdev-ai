@@ -1,24 +1,16 @@
+// components/ui/radiant-container.tsx
 import * as React from "react";
 
-// Tailwind Plus vendor path (per your tree): components/twp/vendor/radiant/container.tsx
-import * as Vendor from "@/components/twp/vendor/radiant/container";
-
-// The vendor may export default or a named `Container`. Resolve safely.
-const VendorContainer =
-  // @ts-expect-error – vendor typing is not guaranteed
-  (Vendor && (Vendor as any).Container) ||
-  // @ts-expect-error – vendor typing is not guaranteed
-  (Vendor && (Vendor as any).default);
-
+/**
+ * App-wide layout container.
+ * Originally this could wrap Tailwind Plus Radiant's Container,
+ * but in this UAT build we fall back to a simple max-width shell
+ * so we don't depend on vendor files being present.
+ */
 export function Container({
   className = "",
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  if (VendorContainer) {
-    // @ts-expect-error – vendor component signature is opaque
-    return <VendorContainer className={className} {...props} />;
-  }
-  // Fallback: centered page container with our tokens
   return (
     <div
       className={`mx-auto max-w-content container-px ${className}`}
@@ -26,4 +18,6 @@ export function Container({
     />
   );
 }
+
+export default Container;
 
