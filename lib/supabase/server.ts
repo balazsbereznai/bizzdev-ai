@@ -5,8 +5,8 @@ import { cookies as nextCookies, headers as nextHeaders } from "next/headers";
 // Canonical Supabase server client for Next.js 15.
 // Works in server actions, route handlers, and server components.
 export async function supabaseServer() {
-  const cookieStore = nextCookies();
-  const headersList = nextHeaders();
+  const cookieStore = await nextCookies();
+  const headersList = await nextHeaders();
 
   // Build a real Headers instance from Next's ReadonlyHeaders
   const headers = new Headers();
