@@ -1,4 +1,6 @@
 // app/api/docs/[docId]/pdf/route.ts
+export const runtime = "nodejs";
+
 import { cookies as nextCookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { mdToPdfNodes } from "@/lib/markdownToPdf";
@@ -29,7 +31,10 @@ async function supabaseServer() {
         },
         remove(name: string, options?: any) {
           try {
-            (cookieStore as any).set(name, "", { ...(options ?? {}), maxAge: 0 });
+            (cookieStore as any).set(name, "", {
+              ...(options ?? {}),
+              maxAge: 0,
+            });
           } catch {
             /* no-op */
           }
@@ -82,9 +87,12 @@ function ensureKeys(node: any, path = "k"): any {
       if (Array.isArray(props.children)) {
         props.children = props.children.map((child: any, i: number) =>
           React.isValidElement(child)
-            ? React.cloneElement(ensureKeys(child, `${path}.${i}`) as any, {
-                key: `${path}.${i}`,
-              })
+            ? React.cloneElement(
+                ensureKeys(child, `${path}.${i}`) as any,
+                {
+                  key: `${path}.${i}`,
+                }
+              )
             : ensureKeys(child, `${path}.${i}`)
         );
       } else {
@@ -92,7 +100,10 @@ function ensureKeys(node: any, path = "k"): any {
       }
     }
 
-    return React.cloneElement(node, { ...props, key: (node as any).key ?? path } as any);
+    return React.cloneElement(node, {
+      ...props,
+      key: (node as any).key ?? path,
+    } as any);
   }
 
   return node;
@@ -125,9 +136,12 @@ function stripFontFamilyDeep(node: any, path = "n"): any {
       if (Array.isArray(props.children)) {
         props.children = props.children.map((child: any, i: number) =>
           React.isValidElement(child)
-            ? React.cloneElement(stripFontFamilyDeep(child, `${path}.${i}`) as any, {
-                key: `${path}.${i}`,
-              })
+            ? React.cloneElement(
+                stripFontFamilyDeep(child, `${path}.${i}`) as any,
+                {
+                  key: `${path}.${i}`,
+                }
+              )
             : stripFontFamilyDeep(child, `${path}.${i}`)
         );
       } else {
@@ -135,16 +149,26 @@ function stripFontFamilyDeep(node: any, path = "n"): any {
       }
     }
 
-    return React.cloneElement(node, { ...props, key: (node as any).key ?? path } as any);
+    return React.cloneElement(node, {
+      ...props,
+      key: (node as any).key ?? path,
+    } as any);
   }
 
   return node;
 }
 
-function createPdfDoc(meta: { title: string | null }, content: React.ReactNode) {
+function createPdfDoc(
+  meta: { title: string | null },
+  content: React.ReactNode
+) {
   return React.createElement(
     Document,
-    { author: "BizzDev.ai", title: meta.title ?? "Document", subject: "Exported from BizzDev.ai" },
+    {
+      author: "BizzDev.ai",
+      title: meta.title ?? "Document",
+      subject: "Exported from BizzDev.ai",
+    },
     React.createElement(
       Page,
       { size: "A4", style: styles.page },
@@ -156,7 +180,10 @@ function createPdfDoc(meta: { title: string | null }, content: React.ReactNode) 
 /* ---------------------------------------------------------
    GET
 --------------------------------------------------------- */
-export async function GET(_req: Request, ctx: { params: Promise<{ docId: string }> }) {
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ docId: string }> }
+) {
   const { docId } = await ctx.params;
   const supabase = await supabaseServer();
 
@@ -180,27 +207,31 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
     const rawNodes = await mdToPdfNodes(markdown, brand as any);
     let content: any = ensureKeys(rawNodes);
 
-    const buildBlob = async (nodeTree: any) => {
+    const buildBytes = async (nodeTree: any): Promise<Uint8Array> => {
       const element = createPdfDoc({ title: doc.title }, nodeTree);
       const raw: unknown = await pdf(element).toBuffer(); // Node Buffer in server runtime
-      // Wrap into a Blob so TS/Fetch typing is always happy
-      return new Blob([raw as any], { type: "application/pdf" });
+      // pdf().toBuffer() already returns a Buffer/Uint8Array that Response can use directly
+      return raw as Uint8Array;
     };
 
-    let blob: Blob;
+    let pdfBytes: Uint8Array;
     try {
-      blob = await buildBlob(content);
+      pdfBytes = await buildBytes(content);
     } catch (e: any) {
-      if (typeof e?.message === "string" && e.message.includes("Font family not registered")) {
+      if (
+        typeof e?.message === "string" &&
+        e.message.includes("Font family not registered")
+      ) {
         const stripped = stripFontFamilyDeep(content);
-        blob = await buildBlob(stripped);
+        pdfBytes = await buildBytes(stripped);
       } else {
+        console.error("PDF generation error:", e);
         throw e;
       }
     }
 
     const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
-    return new Response(blob, {
+    return new Response(pdfBytes, {
       status: 200,
       headers: {
         "content-type": "application/pdf",
@@ -209,6 +240,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
       },
     });
   } catch (e: any) {
+    console.error("PDF export route error:", e);
     return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
       status: 500,
       headers: { "content-type": "application/json" },
