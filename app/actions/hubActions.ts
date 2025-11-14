@@ -19,11 +19,18 @@ function normalizeArray(v: unknown): string[] {
   if (Array.isArray(v)) return v as string[];
   if (v == null) return [];
   if (typeof v === "string") {
-    const split = v.split(/[,|]/).map((s) => s.trim()).filter(Boolean);
+    const split = v
+      .split(/[,|]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     return split;
   }
   try {
-    if (typeof v === "object") return Object.values(v as Record<string, unknown>).map((x) => String(x));
+    if (typeof v === "object") {
+      return Object.values(v as Record<string, unknown>).map((x) =>
+        String(x)
+      );
+    }
   } catch {}
   return [];
 }
@@ -33,8 +40,11 @@ function normalizeArray(v: unknown): string[] {
 function getSrvClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!url || !serviceKey) throw new Error("Missing Supabase env vars (service)");
-  return createServiceClient(url, serviceKey, { auth: { persistSession: false } });
+  if (!url || !serviceKey)
+    throw new Error("Missing Supabase env vars (service)");
+  return createServiceClient(url, serviceKey, {
+    auth: { persistSession: false },
+  });
 }
 
 /**
@@ -70,29 +80,53 @@ async function requireUserId(supabase: SupabaseClient): Promise<string> {
 
 /* --------------------------- Monthly throttle 10 --------------------------- */
 
-async function enforceMonthlyRunLimit(supabase: SupabaseClient, limit = 10): Promise<string> {
+async function enforceMonthlyRunLimit(
+  supabase: SupabaseClient,
+  limit = 10
+): Promise<string> {
   const { data: userData, error: authErr } = await supabase.auth.getUser();
   if (authErr || !userData?.user) throw new Error("UNAUTHENTICATED");
 
-  // Dev/testing bypass (safe default off). Production always enforces.
-  const disableThrottle = process.env.NEXT_PUBLIC_DISABLE_THROTTLE === "1";
-  const isProd = process.env.NODE_ENV === "production";
-  if (!isProd && disableThrottle) {
-    return userData.user.id;
+  const user = userData.user;
+  const email = (user.email || "").toLowerCase();
+
+  // Master user bypass (always unlimited)
+  const masterEnv = process.env.NEXT_PUBLIC_MASTER_USER_EMAILS;
+  const masterEmails = (masterEnv && masterEnv.length > 0
+    ? masterEnv.split(",")
+    : ["balazs.bereznai@yahoo.com"]
+  )
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (masterEmails.includes(email)) {
+    return user.id;
   }
 
-  const { data: allowed, error: throttleErr } = await supabase.rpc("can_user_run_monthly", { _limit: limit });
+  // Environment-based throttle disable (e.g. UAT, local)
+  // If NEXT_PUBLIC_DISABLE_THROTTLE=1, we skip the monthly check entirely.
+  const disableThrottle = process.env.NEXT_PUBLIC_DISABLE_THROTTLE === "1";
+  if (disableThrottle) {
+    return user.id;
+  }
+
+  const { data: allowed, error: throttleErr } = await supabase.rpc(
+    "can_user_run_monthly",
+    { _limit: limit }
+  );
 
   if (throttleErr) {
     console.error("can_user_run_monthly RPC error:", throttleErr);
     throw new Error("RATE_LIMIT_CHECK_FAILED");
   }
   if (!allowed) throw new Error("RATE_LIMIT_REACHED");
-  return userData.user.id;
+  return user.id;
 }
 
 async function logSuccessfulRun(supabase: SupabaseClient, userId: string) {
-  const { error } = await supabase.from("run_throttle").insert({ user_id: userId });
+  const { error } = await supabase
+    .from("run_throttle")
+    .insert({ user_id: userId });
   if (error) console.warn("run_throttle insert warning:", error);
 }
 
@@ -129,7 +163,9 @@ export async function createRunFromHub(formData: FormData) {
   const outputLanguage = asString(formData.get("outputLanguage"));
 
   if (!companyId || !productId || !icpId) {
-    throw new Error("Please select a Company, Product and Potential Customer Profile.");
+    throw new Error(
+      "Please select a Company, Product and Potential Customer Profile."
+    );
   }
 
   const supabase = await getAuthClient();
@@ -138,7 +174,7 @@ export async function createRunFromHub(formData: FormData) {
   // must be logged in
   const userId = await requireUserId(supabase);
 
-  // monthly limit (10)
+  // monthly limit (10) – will bypass for master users or when disabled via env
   const throttleUserId = await enforceMonthlyRunLimit(supabase, 10);
 
   // Fetch selected records (RLS-scoped)
@@ -147,8 +183,16 @@ export async function createRunFromHub(formData: FormData) {
     { data: product, error: prodErr },
     { data: icp, error: icpErr },
   ] = await Promise.all([
-    supabase.from("company_profile").select("*").eq("id", companyId).maybeSingle(),
-    supabase.from("products").select("*").eq("id", productId).maybeSingle(),
+    supabase
+      .from("company_profile")
+      .select("*")
+      .eq("id", companyId)
+      .maybeSingle(),
+    supabase
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .maybeSingle(),
     supabase.from("icps").select("*").eq("id", icpId).maybeSingle(),
   ]);
 
@@ -246,7 +290,10 @@ export async function createRunFromHub(formData: FormData) {
 
     // Style knobs
     tone: mapToneToSchema(tone) ?? (icp.tone as any) ?? undefined,
-    experience_level: mapExperienceToSchema(experience) ?? (icp.experience_level as any) ?? undefined,
+    experience_level:
+      mapExperienceToSchema(experience) ??
+      (icp.experience_level as any) ??
+      undefined,
 
     // NEW: Output language (flat)
     output_language: outputLanguage || undefined,
@@ -278,8 +325,8 @@ export async function createRunFromHub(formData: FormData) {
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", runId);
 
-    const throttleUserId = (await supabase.auth.getUser()).data.user!.id;
-    await logSuccessfulRun(supabase, throttleUserId);
+    const throttleUserIdAfter = (await supabase.auth.getUser()).data.user!.id;
+    await logSuccessfulRun(supabase, throttleUserIdAfter);
   } catch (err: any) {
     console.error("generatePlaybookAction error:", err);
 
