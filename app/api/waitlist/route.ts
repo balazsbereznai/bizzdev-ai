@@ -24,16 +24,21 @@ async function mailer() {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const email = String((body.email || "")).trim().toLowerCase();
+    const email = String(body.email || "").trim().toLowerCase();
     const name = body.name ? String(body.name).trim() : null;
     const notes = body.notes ? String(body.notes).trim() : null;
     const source = body.source ? String(body.source).trim() : "waitlist-api";
 
     if (!email || !EMAIL_RE.test(email)) {
-      return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Valid email is required." },
+        { status: 400 }
+      );
     }
 
-    const supabase = createClient(url, serviceKey, { auth: { persistSession: false } });
+    const supabase = createClient(url, serviceKey, {
+      auth: { persistSession: false },
+    });
 
     // Already enabled tester?
     const { data: tester } = await supabase
@@ -42,7 +47,10 @@ export async function POST(req: Request) {
       .ilike("email", email)
       .maybeSingle();
     if (tester?.enabled) {
-      return NextResponse.json({ ok: true, alreadyTester: true }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, alreadyTester: true },
+        { status: 200 }
+      );
     }
 
     // Already on waitlist?
@@ -52,7 +60,10 @@ export async function POST(req: Request) {
       .ilike("email", email)
       .maybeSingle();
     if (existing) {
-      return NextResponse.json({ ok: true, alreadyExists: true }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, alreadyExists: true },
+        { status: 200 }
+      );
     }
 
     // Insert
@@ -63,7 +74,10 @@ export async function POST(req: Request) {
       source,
     });
     if (insertErr) {
-      return NextResponse.json({ error: "Database error." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database error." },
+        { status: 500 }
+      );
     }
 
     // Notify admin (best-effort)
@@ -72,23 +86,43 @@ export async function POST(req: Request) {
       const from = process.env.EMAIL_FROM || process.env.SMTP_USER!;
       const to = process.env.ADMIN_NOTIFY_TO || process.env.SMTP_USER!;
       const subject = `New waitlist signup: ${email}`;
-      const text = [
+
+      // Derive app base URL from env; fall back to localhost for dev
+      const rawAppUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.APP_URL ||
+        "http://localhost:3000";
+      const appUrl = rawAppUrl.replace(/\/+$/, "");
+      const reviewUrl = `${appUrl}/dashboard/admin/waitlist`;
+
+      const lines: string[] = [
         `Email: ${email}`,
         name ? `Name: ${name}` : "",
         source ? `Source: ${source}` : "",
         notes ? `Notes:\n${notes}` : "",
         "",
-        "Review: http://localhost:3000/dashboard/admin/waitlist",
+        `Review: ${reviewUrl}`,
+      ].filter(Boolean);
+
+      const text = lines.join("\n");
+
+      const html = [
+        `Email: ${email}`,
+        name ? `Name: ${name}` : "",
+        source ? `Source: ${source}` : "",
+        notes ? `Notes:<br/>${notes.replace(/\n/g, "<br/>")}` : "",
+        "",
+        `Review: <a href="${reviewUrl}">${reviewUrl}</a>`,
       ]
         .filter(Boolean)
-        .join("\n");
+        .join("<br/>");
 
       await transporter.sendMail({
         from,
         to,
         subject,
         text,
-        html: text.replace(/\n/g, "<br/>"),
+        html,
       });
     } catch {
       // swallow email errors
@@ -96,7 +130,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch {
-    return NextResponse.json({ error: "Unexpected error." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unexpected error." },
+      { status: 500 }
+    );
   }
 }
 
