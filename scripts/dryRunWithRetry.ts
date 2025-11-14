@@ -34,7 +34,7 @@ async function callOnce(model: string) {
     experience_level: "Experienced",
     output_language: "en",
     word_limit: 1600,
-  };
+  } as PlaybookInput;
 
   const { system, user } = preparePlaybookPrompts(sampleInput);
 
