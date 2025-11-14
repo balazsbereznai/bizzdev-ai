@@ -74,7 +74,6 @@ import { MODEL } from "../lib/ai";
   const resp = await client.chat.completions.create({
     model: MODEL,
     temperature: playbookCallConfig.temperature,
-    top_p: playbookCallConfig.top_p,
     max_tokens: 3500,
     // @ts-ignore seed may not be supported in all SDK versions
     seed: playbookCallConfig.seed,
