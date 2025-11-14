@@ -14,41 +14,26 @@ export default function Callback() {
 
   useEffect(() => {
     const run = async () => {
-      const code = searchParams.get("code");
       const next = searchParams.get("next") || "/profile";
 
-      if (!code) {
-        setMsg("Missing login code. Please request a new magic link.");
-        setDebug("URL query param `code` was missing on /auth/callback");
+      // At this point, the Supabase browser client should have already
+      // processed the magic link code from the URL (detectSessionInUrl).
+      // We just need to check if a user/session is present.
+      const { data, error } = await supabase.auth.getUser();
+
+      if (data.user) {
+        setMsg("Signed in. Redirecting…");
+        setDebug(null);
+        router.replace(next);
         return;
       }
 
-      try {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (error || !data.session) {
-          console.error("Error exchanging code for session", error);
-          setMsg("Could not sign in. Try again.");
-          setDebug(
-            error?.message
-              ? `Supabase error: ${error.message}`
-              : `Supabase returned no session. Raw response: ${JSON.stringify(
-                  data
-                )}`
-          );
-          return;
-        }
-
-        setMsg("Signed in. Redirecting…");
-        router.replace(next);
-      } catch (err: any) {
-        console.error("Unexpected error during auth callback", err);
-        setMsg("Could not sign in. Try again.");
-        setDebug(
-          err?.message
-            ? `Unexpected error: ${err.message}`
-            : `Unexpected error: ${String(err)}`
-        );
+      setMsg("Could not sign in. Try again.");
+      if (error) {
+        console.error("Supabase getUser error on callback", error);
+        setDebug(`Supabase getUser error: ${error.message}`);
+      } else {
+        setDebug("No user session found after magic link callback.");
       }
     };
 
