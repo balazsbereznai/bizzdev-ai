@@ -89,9 +89,7 @@ function ensureKeys(node: any, path = "k"): any {
           React.isValidElement(child)
             ? React.cloneElement(
                 ensureKeys(child, `${path}.${i}`) as any,
-                {
-                  key: `${path}.${i}`,
-                }
+                { key: `${path}.${i}` }
               )
             : ensureKeys(child, `${path}.${i}`)
         );
@@ -138,9 +136,7 @@ function stripFontFamilyDeep(node: any, path = "n"): any {
           React.isValidElement(child)
             ? React.cloneElement(
                 stripFontFamilyDeep(child, `${path}.${i}`) as any,
-                {
-                  key: `${path}.${i}`,
-                }
+                { key: `${path}.${i}` }
               )
             : stripFontFamilyDeep(child, `${path}.${i}`)
         );
@@ -210,7 +206,6 @@ export async function GET(
     const buildBytes = async (nodeTree: any): Promise<Uint8Array> => {
       const element = createPdfDoc({ title: doc.title }, nodeTree);
       const raw: unknown = await pdf(element).toBuffer(); // Node Buffer in server runtime
-      // pdf().toBuffer() already returns a Buffer/Uint8Array that Response can use directly
       return raw as Uint8Array;
     };
 
@@ -231,7 +226,7 @@ export async function GET(
     }
 
     const filename = `${safeFilename(doc.title ?? "document")}.pdf`;
-    return new Response(pdfBytes, {
+    return new Response(pdfBytes as any, {
       status: 200,
       headers: {
         "content-type": "application/pdf",
