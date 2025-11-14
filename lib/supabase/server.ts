@@ -14,26 +14,48 @@ export async function supabaseServer() {
     headers.set(key, value);
   });
 
+  // Provide both the "old" and "new" cookie method shapes so whichever
+  // version of @supabase/ssr you have can use what it expects.
+  const cookieMethods = {
+    // Old-style methods (CookieMethodsServerDeprecated)
+    get: (name: string) => cookieStore.get(name)?.value,
+    set: (
+      name: string,
+      value: string,
+      options?: Parameters<(typeof cookieStore)["set"]>[0]
+    ) => {
+      cookieStore.set({ name, value, ...(options as any) });
+    },
+    remove: (
+      name: string,
+      options?: Parameters<(typeof cookieStore)["delete"]>[0]
+    ) => {
+      cookieStore.delete({ name, ...(options as any) });
+    },
+
+    // New-style methods (CookieMethodsServer)
+    getAll: () =>
+      cookieStore
+        .getAll()
+        .map((c) => ({ name: c.name, value: c.value })),
+    setAll: (
+      list: { name: string; value: string; options?: any }[]
+    ) => {
+      list.forEach(({ name, value, options }) => {
+        cookieStore.set({ name, value, ...(options as any) });
+      });
+    },
+  };
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // Next 15 + @supabase/ssr expect getAll/setAll-style cookie methods
-      cookies: {
-        getAll() {
-          // Supabase only needs name/value; be explicit here
-          return cookieStore
-            .getAll()
-            .map((c) => ({ name: c.name, value: c.value }));
-        },
-        setAll(list) {
-          list.forEach(({ name, value, options }) => {
-            cookieStore.set({ name, value, ...(options as any) });
-          });
-        },
-      },
-      headers,
-    }
+      // Cast as any to bypass the overload tug-of-war between
+      // CookieMethodsServer and CookieMethodsServerDeprecated.
+      cookies: cookieMethods as any,
+      headers: headers as any,
+    } as any
   );
 
   return supabase;
