@@ -48,7 +48,7 @@ export default function Callback() {
       const {
         data: exchangeData,
         error: exchangeError,
-      } = await supabase.auth.exchangeCodeForSession({ code })
+      } = await supabase.auth.exchangeCodeForSession(code)
 
       if (!exchangeError && exchangeData.session) {
         setMsg('Signed in. Redirecting…')
