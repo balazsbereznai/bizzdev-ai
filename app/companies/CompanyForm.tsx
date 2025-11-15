@@ -1,3 +1,4 @@
+// app/companies/CompanyForm.tsx
 'use client'
 
 import * as React from 'react'
@@ -32,14 +33,26 @@ export default function CompanyForm(props: Props) {
   const [error, setError] = React.useState<string | null>(null)
 
   const [values, setValues] = React.useState<Company>({
-    company_name: props.mode === 'edit' ? props.initial.company_name : props.initial?.company_name ?? '',
-    industry:     props.mode === 'edit' ? props.initial.industry     : props.initial?.industry     ?? '',
-    region:       props.mode === 'edit' ? props.initial.region       : props.initial?.region       ?? '',
-    size:         props.mode === 'edit' ? props.initial.size         : props.initial?.size         ?? '',
+    company_name:
+      props.mode === 'edit'
+        ? props.initial.company_name
+        : props.initial?.company_name ?? '',
+    industry:
+      props.mode === 'edit'
+        ? props.initial.industry
+        : props.initial?.industry ?? '',
+    region:
+      props.mode === 'edit'
+        ? props.initial.region
+        : props.initial?.region ?? '',
+    size:
+      props.mode === 'edit'
+        ? props.initial.size
+        : props.initial?.size ?? '',
   })
 
   function onChange<K extends keyof Company>(key: K, val: Company[K]) {
-    setValues(v => ({ ...v, [key]: val }))
+    setValues((v) => ({ ...v, [key]: val }))
   }
 
   function performAfterSave(): boolean {
@@ -66,16 +79,54 @@ export default function CompanyForm(props: Props) {
     return false
   }
 
+  async function ensureUserProfile(user: { id: string; email?: string | null }) {
+    // Check if a user_profile row already exists for this auth user
+    const { data: profileRows, error: profileSelectErr } = await supabase
+      .from('user_profile')
+      .select('id')
+      .eq('id', user.id)
+      .limit(1)
+
+    if (profileSelectErr) {
+      throw profileSelectErr
+    }
+
+    const hasProfile = Array.isArray(profileRows) && profileRows.length > 0
+
+    if (!hasProfile) {
+      const { error: profileInsertErr } = await supabase
+        .from('user_profile')
+        .insert({
+          id: user.id,
+          email: user.email ?? null,
+          full_name: null,
+          role: 'user',
+        })
+
+      if (profileInsertErr) {
+        throw profileInsertErr
+      }
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsSaving(true)
     setError(null)
     try {
       if (props.mode === 'create') {
-        const { data: { user }, error: userErr } = await supabase.auth.getUser()
+        const {
+          data: { user },
+          error: userErr,
+        } = await supabase.auth.getUser()
         if (userErr) throw userErr
-        const userId = user?.id
-        if (!userId) throw new Error('Not authenticated.')
+        if (!user?.id) throw new Error('Not authenticated.')
+
+        // Ensure user_profile exists for this auth user to satisfy FK:
+        // company_profile.user_id -> user_profile.id
+        await ensureUserProfile({ id: user.id, email: user.email })
+
+        const userId = user.id
 
         const { data, error } = await supabase
           .from('company_profile')
@@ -84,7 +135,7 @@ export default function CompanyForm(props: Props) {
             created_by: userId,
             company_name: values.company_name?.trim() || null,
             industry: values.industry?.trim() || null,
-            region: values.region?.trim() || null,   
+            region: values.region?.trim() || null,
             size: values.size?.trim() || null,
           })
           .select('id')
@@ -203,7 +254,7 @@ export default function CompanyForm(props: Props) {
               <BrandButton
                 href="/dashboard/hub"
                 outline
-                className="btn-back !inline-flex !items-center !py-2 !px-3 !border-[--primary] !text-[--primary] bg-transparent"
+                className="btn-back !inline-flex !items-center !py-2 !px-3 !border-[--primary] bg-transparent !text-[--primary]"
               >
                 Back to Hub
               </BrandButton>
@@ -216,7 +267,11 @@ export default function CompanyForm(props: Props) {
             disabled={isSaving}
             className="!py-2 !px-3 !text-[#0b1220]"
           >
-            {isSaving ? 'Saving…' : (props.mode === 'create' ? 'Create company' : 'Save changes')}
+            {isSaving
+              ? 'Saving…'
+              : props.mode === 'create'
+              ? 'Create company'
+              : 'Save changes'}
           </BrandButton>
         </div>
       )}
