@@ -1,3 +1,4 @@
+// app/actions/companyActions.ts
 'use server';
 
 import { cookies } from 'next/headers';
@@ -27,7 +28,41 @@ export async function createCompanyFromHub() {
     data: { user },
     error: userErr,
   } = await supabase.auth.getUser();
-  if (userErr || !user) redirect('/signin');
+
+  if (userErr || !user) {
+    redirect('/signin');
+  }
+
+  // Ensure a matching user_profile row exists for this auth user.
+  // company_profile.user_id has a FK to user_profile.id, and RLS uses auth.uid() = user_id,
+  // so user_profile.id must equal auth.users.id for this user.
+  const { data: profileRows, error: profileSelectErr } = await supabase
+    .from('user_profile')
+    .select('id')
+    .eq('id', user.id)
+    .limit(1);
+
+  if (profileSelectErr) {
+    // If we cannot verify the profile, fail gracefully back to the hub
+    redirect('/dashboard/hub?err=load_user_profile_failed');
+  }
+
+  const hasProfile = Array.isArray(profileRows) && profileRows.length > 0;
+
+  if (!hasProfile) {
+    const { error: profileInsertErr } = await supabase.from('user_profile').insert({
+      id: user.id,
+      email: user.email ?? null,
+      full_name: null,
+      role: 'user',
+    });
+
+    if (profileInsertErr) {
+      // If we cannot create the profile, the FK on company_profile will fail anyway,
+      // so bail out early with a clear error.
+      redirect('/dashboard/hub?err=create_user_profile_failed');
+    }
+  }
 
   const { data: row, error: insErr } = await supabase
     .from('company_profile')
