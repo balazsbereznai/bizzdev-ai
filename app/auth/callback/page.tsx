@@ -16,11 +16,9 @@ export default function Callback() {
   useEffect(() => {
     const run = async () => {
       const next = searchParams.get('next') || '/profile'
-      const code = searchParams.get('code') ?? undefined
 
-      // 1) First try: do we already have a session?
+      // Try this first: maybe a session already exists
       let { data, error } = await supabase.auth.getUser()
-
       if (data.user) {
         setMsg('Signed in. Redirecting…')
         setDebug(null)
@@ -28,40 +26,78 @@ export default function Callback() {
         return
       }
 
-      // 2) If no user and no code in the URL, we cannot recover here
-      if (!code) {
-        setMsg('Could not sign in. Try again.')
-        if (error) {
-          console.error('Supabase getUser error on callback (no code)', error)
-          setDebug(`Supabase getUser error: ${error.message}`)
-        } else {
-          setDebug('No user session and no auth code in URL.')
+      // Parse hash params (for Supabase dashboard / invite-style links)
+      let accessToken: string | undefined
+      let refreshToken: string | undefined
+      let code: string | undefined = searchParams.get('code') ?? undefined
+
+      if (typeof window !== 'undefined' && window.location.hash) {
+        const hash = window.location.hash.replace(/^#/, '')
+        const hashParams = new URLSearchParams(hash)
+
+        accessToken = hashParams.get('access_token') ?? undefined
+        refreshToken = hashParams.get('refresh_token') ?? undefined
+
+        // Some flows may pass `code` in the hash instead of query
+        if (!code) {
+          code = hashParams.get('code') ?? undefined
         }
-        return
       }
 
-      // 3) We have an auth code but no session yet.
-      //    This covers flows where Supabase sends the magic link directly
-      //    (e.g. admin/alpha_tester invites) and the browser has no session.
-      setMsg('Finishing sign in…')
+      // 1) Hash-token flow: access_token + refresh_token in URL fragment
+      if (accessToken && refreshToken) {
+        setMsg('Finishing sign in…')
 
-      const {
-        data: exchangeData,
-        error: exchangeError,
-      } = await supabase.auth.exchangeCodeForSession(code)
+        const {
+          data: sessionData,
+          error: sessionError,
+        } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
 
-      if (!exchangeError && exchangeData.session) {
-        setMsg('Signed in. Redirecting…')
-        setDebug(null)
-        router.replace(next)
-        return
+        if (!sessionError && sessionData.session) {
+          setMsg('Signed in. Redirecting…')
+          setDebug(null)
+          router.replace(next)
+          return
+        }
+
+        // If setSession failed, log and fall through to other strategies
+        if (sessionError) {
+          console.error('Supabase setSession error on callback', sessionError)
+          setDebug(`Supabase setSession error: ${sessionError.message}`)
+        }
       }
 
-      // 4) If exchange failed, log and try one last time to see if a session exists
-      if (exchangeError) {
-        console.error('Supabase exchangeCodeForSession error', exchangeError)
+      // 2) PKCE-style flow: ?code=... (or #code=...) → exchangeCodeForSession
+      if (code) {
+        setMsg('Finishing sign in…')
+
+        const {
+          data: exchangeData,
+          error: exchangeError,
+        } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (!exchangeError && exchangeData.session) {
+          setMsg('Signed in. Redirecting…')
+          setDebug(null)
+          router.replace(next)
+          return
+        }
+
+        if (exchangeError) {
+          console.error(
+            'Supabase exchangeCodeForSession error on callback',
+            exchangeError,
+          )
+          setDebug(
+            `Supabase exchangeCodeForSession error: ${exchangeError.message}`,
+          )
+        }
       }
 
+      // 3) Final fallback: check getUser() once more in case a session appeared
       ;({ data, error } = await supabase.auth.getUser())
       if (data.user) {
         setMsg('Signed in. Redirecting…')
@@ -70,16 +106,19 @@ export default function Callback() {
         return
       }
 
-      // 5) Still no session: show a clear error for the user + debug info for us
+      // 4) Still no session → show friendly error and any debug info we have
       setMsg('Could not sign in. Try again.')
-      if (exchangeError) {
-        setDebug(
-          `Supabase exchangeCodeForSession error: ${exchangeError.message}`,
-        )
-      } else if (error) {
-        setDebug(`Supabase getUser error after exchange: ${error.message}`)
-      } else {
-        setDebug('No user session found after exchanging auth code.')
+      if (!debug) {
+        if (error) {
+          console.error('Supabase getUser error on callback (final)', error)
+          setDebug(`Supabase getUser error: ${error.message}`)
+        } else if (!code && !accessToken && !refreshToken) {
+          setDebug(
+            'No user session and no auth parameters (code/access_token) found in URL.',
+          )
+        } else {
+          setDebug('No user session found after processing auth callback.')
+        }
       }
     }
 
