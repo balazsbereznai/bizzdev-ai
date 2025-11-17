@@ -1,4 +1,4 @@
-// app/actions/hub/hubActions.ts
+// app/actions/hubActions.ts
 "use server";
 
 import { redirect } from "next/navigation";
@@ -104,7 +104,6 @@ async function enforceMonthlyRunLimit(
   }
 
   // Environment-based throttle disable (e.g. UAT, local)
-  // If NEXT_PUBLIC_DISABLE_THROTTLE=1, we skip the monthly check entirely.
   const disableThrottle = process.env.NEXT_PUBLIC_DISABLE_THROTTLE === "1";
   if (disableThrottle) {
     return user.id;
@@ -176,6 +175,7 @@ export async function createRunFromHub(formData: FormData) {
 
   // monthly limit (10) – will bypass for master users or when disabled via env
   const throttleUserId = await enforceMonthlyRunLimit(supabase, 10);
+  void throttleUserId; // retained for semantics; not needed directly below
 
   // Fetch selected records (RLS-scoped)
   const [
@@ -209,7 +209,7 @@ export async function createRunFromHub(formData: FormData) {
   const icpName = icp.name ?? "ICP";
   const title = `${companyName} ▸ ${productName} ▸ ${icpName}`;
 
-  // Create run row (business logic unchanged, ui now also stores outputLanguage)
+  // Create run row (business logic unchanged)
   const { data: runRow, error: runErr } = await supabase
     .from("runs")
     .insert({
@@ -347,6 +347,7 @@ export async function createRunFromHub(formData: FormData) {
     throw err;
   }
 
-  redirect(`/runs/${runId}/docs/${docId}`);
+  // IMPORTANT: explicitly return the redirect for the server action
+  return redirect(`/runs/${runId}/docs/${docId}`);
 }
 
