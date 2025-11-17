@@ -39,10 +39,10 @@ function Card({
 }
 
 export default async function AccountPage() {
-  // FIX 1: Next.js 15 requires awaiting cookies()
+  // Next.js 15: cookies() must be awaited
   const cookieStore = await cookies();
 
-  // Server-side Supabase from cookies (no service-role)
+  // Server-side Supabase from cookies (same adapter style as /dashboard/hub)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -51,11 +51,11 @@ export default async function AccountPage() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set() {
-          // no-op in RSC
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
         },
-        remove() {
-          // no-op in RSC
+        remove(name: string, options: any) {
+          cookieStore.delete({ name, ...options });
         },
       },
     }
@@ -93,8 +93,12 @@ export default async function AccountPage() {
 
   // Usage counting (Option A): UTC month window; display reset in Europe/Budapest
   const now = new Date();
-  const monthStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
-  const nextMonthStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+  const monthStartUtc = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+  );
+  const nextMonthStartUtc = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0)
+  );
   const resetDateDisplay = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Budapest",
     year: "numeric",
@@ -158,7 +162,9 @@ export default async function AccountPage() {
         {userId === "c444634f-c1fb-4792-a7d6-6a2dab9006b1" ? (
           <div className="text-sm opacity-80">
             Runs this month: <span className="font-medium">Unlimited</span>
-            <div className="mt-1">Resets on {resetDateDisplay} (Europe/Budapest)</div>
+            <div className="mt-1">
+              Resets on {resetDateDisplay} (Europe/Budapest)
+            </div>
           </div>
         ) : Number.isNaN(runsUsed) ? (
           <div className="text-sm opacity-80">
@@ -171,7 +177,9 @@ export default async function AccountPage() {
               {runsUsed} of {MONTHLY_LIMIT}
             </span>
             <div className="mt-1">Remaining: {runsRemaining}</div>
-            <div className="mt-1">Resets on {resetDateDisplay} (Europe/Budapest)</div>
+            <div className="mt-1">
+              Resets on {resetDateDisplay} (Europe/Budapest)
+            </div>
           </div>
         )}
       </Card>

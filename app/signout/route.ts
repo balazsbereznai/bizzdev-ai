@@ -16,11 +16,11 @@ export async function GET() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set() {
-          // ignored on server route
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
         },
-        remove() {
-          // ignored
+        remove(name: string, options: any) {
+          cookieStore.delete({ name, ...options });
         },
       },
     }
@@ -28,7 +28,10 @@ export async function GET() {
 
   await supabase.auth.signOut();
 
-  const redirectUrl = new URL("/signin?signed_out=1", process.env.NEXT_PUBLIC_APP_URL);
+  const redirectUrl = new URL(
+    "/signin?signed_out=1",
+    process.env.NEXT_PUBLIC_APP_URL
+  );
   return NextResponse.redirect(redirectUrl);
 }
 
