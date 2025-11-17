@@ -1,30 +1,47 @@
-// app/dev/generate/page.tsx — FULL REPLACE
+// app/dev/generate/page.tsx
 import { generatePlaybookAction } from "@/app/actions/generate";
 import { createClient } from "@supabase/supabase-js";
 
-// Server-side Supabase client (this code runs server-side in an RSC)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// This is a dev-only helper page; do not pre-render it at build time.
+export const dynamic = "force-dynamic";
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // In UAT / production builds this might be missing; fail gracefully
+  if (!url || !anonKey) {
+    return null;
+  }
+
+  return createClient(url, anonKey);
+}
 
 export default async function Page() {
   // Optional test doc id; leave empty to render without calling Supabase
   const docId = process.env.NEXT_PUBLIC_TEST_DOC_ID ?? "";
   let doc: any = null;
 
-  if (docId) {
+  const supabase = getSupabase();
+
+  if (docId && supabase) {
     const { data } = await supabase
       .from("documents")
       .select("*")
       .eq("id", docId)
       .single();
-    doc = data;
+
+    doc = data ?? null;
   }
 
   async function onGenerate() {
     "use server";
-    if (!docId) throw new Error("Set NEXT_PUBLIC_TEST_DOC_ID in .env.local to a real document UUID.");
+
+    if (!docId) {
+      throw new Error(
+        "Set NEXT_PUBLIC_TEST_DOC_ID in the environment to a real document UUID."
+      );
+    }
 
     // Minimal valid input for generatePlaybookAction
     await generatePlaybookAction({
@@ -37,16 +54,26 @@ export default async function Page() {
         tone: doc?.vars?.tone ?? "Pragmatic",
         experience_level: doc?.vars?.experience_level ?? "Experienced",
         output_language: "en",
-        // any extra fields in your schema are optional here
       } as any,
     });
   }
 
+  const hasSupabaseEnv = Boolean(getSupabase());
+
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-semibold">Dev: Generate Test</h1>
+
+      {!hasSupabaseEnv && (
+        <p className="text-sm text-amber-300">
+          Supabase env vars are not configured; this dev page will not load a
+          document but you can still trigger generation if the server action is configured.
+        </p>
+      )}
+
       <p className="text-sm text-zinc-400">
-        Using docId: <code className="text-zinc-200">{docId || "(not set)"}</code>
+        Using docId:{" "}
+        <code className="text-zinc-200">{docId || "(not set)"}</code>
       </p>
 
       <form action={onGenerate}>
@@ -56,8 +83,17 @@ export default async function Page() {
       </form>
 
       <div className="text-sm text-zinc-400">
-        <p>Doc type: <code className="text-zinc-200">{doc?.type ?? "(unknown)"}</code></p>
-        <p>Status: <code className="text-zinc-200">{doc?.status ?? "(unknown)"}</code> — refresh after clicking.</p>
+        <p>
+          Doc type:{" "}
+          <code className="text-zinc-200">{doc?.type ?? "(unknown)"}</code>
+        </p>
+        <p>
+          Status:{" "}
+          <code className="text-zinc-200">
+            {doc?.status ?? "(unknown)"}
+          </code>{" "}
+          — refresh after clicking.
+        </p>
       </div>
     </div>
   );
