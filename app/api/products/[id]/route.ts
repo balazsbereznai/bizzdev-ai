@@ -3,12 +3,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-type RouteContext = {
-  params: { id: string };
-};
-
-export async function DELETE(_req: Request, context: RouteContext) {
-  const { id } = context.params;
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
 
   const cookieStore = await cookies();
 
@@ -37,7 +36,6 @@ export async function DELETE(_req: Request, context: RouteContext) {
     .eq("created_by", user.id);
 
   if (error) {
-    // For this cleanup path we don't need to be fancy; loggable via Vercel logs if needed
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
