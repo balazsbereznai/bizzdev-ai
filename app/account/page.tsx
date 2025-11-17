@@ -1,4 +1,4 @@
-// app/account/page.tsx — FULL REPLACE (client-side account page)
+// app/account/page.tsx — FULL REPLACE (client-side account page, fixed sign-out prefetch)
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -174,6 +174,7 @@ export default function AccountPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/signout"
+              prefetch={false}
               className="rounded-lg border border-black/10 px-3 py-2 text-sm hover:bg-black/5"
             >
               Sign out
@@ -231,3 +232,5 @@ export default function AccountPage() {
     </main>
   );
 }
+
+
