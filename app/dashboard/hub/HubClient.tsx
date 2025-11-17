@@ -94,7 +94,8 @@ export default function HubClient({
   );
 
   // New: Output language (UI-facing) — default Auto
-  const [outputLang, setOutputLang] = React.useState<(typeof LANG_OPTIONS)[number]["code"]>("auto");
+  const [outputLang, setOutputLang] =
+    React.useState<(typeof LANG_OPTIONS)[number]["code"]>("auto");
 
   const [isGenerating, setIsGenerating] = React.useState(false);
 
@@ -123,7 +124,11 @@ export default function HubClient({
     const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       <div
         className="rounded-2xl glass bg-[color:var(--color-bg)/.45] p-3"
-        style={{ borderWidth: "0.5px", borderStyle: "solid", borderColor: "rgba(255,255,255,0.14)" }}
+        style={{
+          borderWidth: "0.5px",
+          borderStyle: "solid",
+          borderColor: "rgba(255,255,255,0.14)",
+        }}
       >
         {children}
       </div>
@@ -150,7 +155,7 @@ export default function HubClient({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-medium text-[--color-ink] text-[0.95rem] leading-6 whitespace-normal break-words group-hover:text-[--color-ink]">
+                    <div className="font-medium text-[--color-ink] text-[0.95rem] leading-6 whitespace-normal break-words group-hover:text-[--color-primary]">
                       {it.title}
                     </div>
                     {it.sub ? (
@@ -261,28 +266,36 @@ export default function HubClient({
               </div>
             </div>
 
-            <form action={formAction} onSubmit={() => setIsGenerating(true)} aria-busy={isGenerating}>
+            <form
+              action={formAction}
+              onSubmit={() => setIsGenerating(true)}
+              aria-busy={isGenerating}
+            >
               <input type="hidden" name="companyId" value={companyId} />
               <input type="hidden" name="productId" value={productId} />
               <input type="hidden" name="icpId" value={icpId} />
               <input type="hidden" name="tone" value={toneToken(toneUI)} />
               <input type="hidden" name="experience" value={experienceValue(experienceUI)} />
               <input type="hidden" name="salesMotion" value={motionUI} />
+              <input type="hidden" name="outputLanguage" value={outputLang} />
 
               <div className="card-body space-y-4">
-                {/* New: Output language */}
+                {/* Output language */}
                 <div>
                   <label className="field-label" htmlFor="outputLanguage">
                     Output language
                   </label>
                   <select
                     id="outputLanguage"
-                    name="outputLanguage"
+                    name="outputLanguage-ui"
                     className="select rounded-2xl border-white/20 text-sm"
                     value={outputLang}
-                    onChange={(e) => setOutputLang(e.target.value as (typeof LANG_OPTIONS)[number]["code"])}
+                    onChange={(e) =>
+                      setOutputLang(
+                        e.target.value as (typeof LANG_OPTIONS)[number]["code"]
+                      )
+                    }
                     disabled={isGenerating}
-                    aria-describedby="outputLanguageHelp"
                   >
                     {LANG_OPTIONS.map((opt) => (
                       <option key={opt.code} value={opt.code}>
@@ -290,8 +303,8 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
-                  <p id="outputLanguageHelp" className="sr-only">
-                    Choose the language for the entire generated playbook
+                  <p className="mt-1 text-xs text-[--color-ink-3]">
+                    The playbook will be written in this language end to end.
                   </p>
                 </div>
 
@@ -300,7 +313,9 @@ export default function HubClient({
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={toneUI}
-                    onChange={(e) => setToneUI(e.target.value as (typeof TONES_UI)[number])}
+                    onChange={(e) =>
+                      setToneUI(e.target.value as (typeof TONES_UI)[number])
+                    }
                     disabled={isGenerating}
                   >
                     {TONES_UI.map((t) => (
@@ -309,13 +324,23 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1 text-xs text-[--color-ink-3]">
+                    How you want the playbook to sound in front of the customer
+                    (more formal, more consultative, more challenging, or more
+                    storytelling).
+                  </p>
                 </div>
+
                 <div>
                   <label className="field-label">Experience level</label>
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={experienceUI}
-                    onChange={(e) => setExperienceUI(e.target.value as (typeof EXPERIENCE_UI)[number])}
+                    onChange={(e) =>
+                      setExperienceUI(
+                        e.target.value as (typeof EXPERIENCE_UI)[number]
+                      )
+                    }
                     disabled={isGenerating}
                   >
                     {EXPERIENCE_UI.map((x) => (
@@ -324,13 +349,20 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1 text-xs text-[--color-ink-3]">
+                    Choose whether the seller is already experienced with this
+                    type of deal or needs more step-by-step guidance.
+                  </p>
                 </div>
+
                 <div>
                   <label className="field-label">Sales motion</label>
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={motionUI}
-                    onChange={(e) => setMotionUI(e.target.value as (typeof MOTIONS_UI)[number])}
+                    onChange={(e) =>
+                      setMotionUI(e.target.value as (typeof MOTIONS_UI)[number])
+                    }
                     disabled={isGenerating}
                   >
                     {MOTIONS_UI.map((m) => (
@@ -339,6 +371,11 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1 text-xs text-[--color-ink-3]">
+                    The type of sales process the playbook should assume
+                    (inbound leads, cold outbound, partner-led, or growing an
+                    existing account).
+                  </p>
                 </div>
               </div>
 
