@@ -1,11 +1,10 @@
-// app/account/page.tsx — FULL REPLACE
-import React from "react";
-import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import SendMagicLinkButton from "@/components/account/SendMagicLinkButton";
+// app/account/page.tsx — FULL REPLACE (client-side account page)
+"use client";
 
-export const dynamic = "force-dynamic";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase-browser";
+import SendMagicLinkButton from "@/components/account/SendMagicLinkButton";
 
 type BadgeProps = { children: React.ReactNode; tone?: "default" | "admin" };
 function Badge({ children, tone = "default" }: BadgeProps) {
@@ -38,34 +37,98 @@ function Card({
   );
 }
 
-export default async function AccountPage() {
-  // Next.js 15: cookies() must be awaited
-  const cookieStore = await cookies();
+// One browser Supabase client for this page
+const supabase = createClient();
 
-  // Server-side Supabase from cookies (same adapter style as /dashboard/hub)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: any) {
-          cookieStore.delete({ name, ...options });
-        },
-      },
+export default function AccountPage() {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any | null>(null);
+  const [runsUsed, setRunsUsed] = useState<number | null>(null);
+  const [runsRemaining, setRunsRemaining] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setLoadError(null);
+
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data?.user) {
+        if (!cancelled) {
+          // Mirror server guard: if no user, go to signin
+          window.location.assign("/signin?next=/account&dbg=no-user-account");
+        }
+        return;
+      }
+
+      const u = data.user;
+
+      // Usage calc — same logic as before but client-side
+      const now = new Date();
+      const monthStartUtc = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+      );
+      const nextMonthStartUtc = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0)
+      );
+      const MONTHLY_LIMIT = 10;
+
+      let used = 0;
+      let remaining = MONTHLY_LIMIT;
+
+      if (u.id === "c444634f-c1fb-4792-a7d6-6a2dab9006b1") {
+        // Your account: display-only unlimited
+        used = 0;
+        remaining = Number.POSITIVE_INFINITY;
+      } else {
+        const { count, error: countErr } = await supabase
+          .from("runs")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", u.id)
+          .gte("created_at", monthStartUtc.toISOString())
+          .lt("created_at", nextMonthStartUtc.toISOString());
+
+        if (countErr) {
+          if (!cancelled) {
+            setLoadError("Couldn’t fetch usage right now. Please refresh.");
+          }
+        } else {
+          used = count ?? 0;
+          remaining = Math.max(MONTHLY_LIMIT - used, 0);
+        }
+      }
+
+      if (!cancelled) {
+        setUser(u);
+        setRunsUsed(used);
+        setRunsRemaining(remaining);
+        setLoading(false);
+      }
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // While loading, show a simple shell
+  if (loading && !user) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <Card title="Account">
+          <p className="text-sm opacity-80">Loading your account…</p>
+        </Card>
+      </main>
+    );
+  }
 
   if (!user) {
+    // In practice we redirect above, but keep a fallback
     return (
       <main className="mx-auto max-w-3xl px-4 py-10">
         <Card title="Account">
@@ -91,11 +154,7 @@ export default async function AccountPage() {
       .filter(Boolean) ?? [];
   const isAdmin = adminList.includes(email.toLowerCase());
 
-  // Usage counting (Option A): UTC month window; display reset in Europe/Budapest
   const now = new Date();
-  const monthStartUtc = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
-  );
   const nextMonthStartUtc = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0)
   );
@@ -105,30 +164,6 @@ export default async function AccountPage() {
     month: "long",
     day: "2-digit",
   }).format(nextMonthStartUtc);
-
-  const MONTHLY_LIMIT = 10;
-  let runsUsed = 0;
-  let runsRemaining = MONTHLY_LIMIT;
-
-  if (userId === "c444634f-c1fb-4792-a7d6-6a2dab9006b1") {
-    // Display-only override for your account; does not touch server-side limits
-    runsUsed = 0;
-    runsRemaining = Number.POSITIVE_INFINITY;
-  } else {
-    const { count, error: countErr } = await supabase
-      .from("runs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", monthStartUtc.toISOString())
-      .lt("created_at", nextMonthStartUtc.toISOString());
-
-    if (countErr) {
-      runsUsed = NaN as any;
-    } else {
-      runsUsed = count ?? 0;
-      runsRemaining = Math.max(MONTHLY_LIMIT - runsUsed, 0);
-    }
-  }
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -166,15 +201,15 @@ export default async function AccountPage() {
               Resets on {resetDateDisplay} (Europe/Budapest)
             </div>
           </div>
-        ) : Number.isNaN(runsUsed) ? (
-          <div className="text-sm opacity-80">
-            Couldn’t fetch usage right now. Please refresh.
-          </div>
+        ) : loadError ? (
+          <div className="text-sm opacity-80">{loadError}</div>
+        ) : runsUsed == null || runsRemaining == null ? (
+          <div className="text-sm opacity-80">Loading usage…</div>
         ) : (
           <div className="text-sm opacity-80">
             Runs this month:{" "}
             <span className="font-medium">
-              {runsUsed} of {MONTHLY_LIMIT}
+              {runsUsed} of {10}
             </span>
             <div className="mt-1">Remaining: {runsRemaining}</div>
             <div className="mt-1">
@@ -196,4 +231,3 @@ export default async function AccountPage() {
     </main>
   );
 }
-
