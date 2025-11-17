@@ -19,15 +19,21 @@ export async function POST() {
 
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user;
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   // Disambiguate overload: send both args
   const { data: orgId, error: orgErr } = await supabase.rpc("ensure_org_for_user", {
     uid: user.id,
     org_name: null,
   });
+
   if (orgErr || !orgId) {
-    return NextResponse.json({ error: orgErr?.message || "org resolution failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: orgErr?.message || "org resolution failed" },
+      { status: 500 }
+    );
   }
 
   const { data, error } = await supabase
@@ -35,13 +41,16 @@ export async function POST() {
     .insert({
       org_id: orgId as string,
       created_by: user.id,
-      name: "Untitled Product",
+      // name is intentionally left null/empty; user will fill it in the editor
     })
     .select("id")
     .single();
 
   if (error || !data?.id) {
-    return NextResponse.json({ error: error?.message || "create failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || "create failed" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ id: data.id }, { status: 200 });
