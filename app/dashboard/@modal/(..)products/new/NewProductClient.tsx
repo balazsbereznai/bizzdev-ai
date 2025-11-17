@@ -7,12 +7,16 @@ export default function NewProductClient() {
   const [id, setId] = React.useState<string | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(true);
+  const [saved, setSaved] = React.useState(false);
 
   const createViaApi = React.useCallback(async () => {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch('/api/products/new', { method: 'POST', cache: 'no-store' });
+      const res = await fetch('/api/products/new', {
+        method: 'POST',
+        cache: 'no-store',
+      });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new Error(text || `Create failed (${res.status})`);
@@ -27,7 +31,28 @@ export default function NewProductClient() {
     }
   }, []);
 
-  React.useEffect(() => { createViaApi(); }, [createViaApi]);
+  // Create the temp product when the modal mounts
+  React.useEffect(() => {
+    createViaApi();
+  }, [createViaApi]);
+
+  // Mark as saved when the editor dispatches bd:saved (on successful Save & Exit)
+  React.useEffect(() => {
+    function handleSaved() {
+      setSaved(true);
+    }
+    window.addEventListener('bd:saved', handleSaved);
+    return () => window.removeEventListener('bd:saved', handleSaved);
+  }, []);
+
+  // Cleanup: if this was a new product and never saved, delete it on unmount
+  React.useEffect(() => {
+    return () => {
+      if (!id || saved) return;
+      // fire-and-forget; we don't block navigation on cleanup
+      fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
+    };
+  }, [id, saved]);
 
   if (busy) {
     return (
@@ -36,15 +61,37 @@ export default function NewProductClient() {
         <div className="text-sm text-[--color-ink-3]">Creating a new product…</div>
         <style jsx>{`
           .indeterminate-bar {
-            height: 8px; width: 100%; border-radius: 9999px; overflow: hidden; position: relative;
-            background: rgba(255,255,255,0.12);
+            height: 8px;
+            width: 100%;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+            background: rgba(255, 255, 255, 0.12);
           }
           .indeterminate-bar::before {
-            content:""; position:absolute; inset:0;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.25) 25%, rgba(255,255,255,.6) 50%, rgba(255,255,255,.25) 75%, transparent 100%);
-            background-size:200% 100%; animation:bdInd 1.1s linear infinite; border-radius:inherit;
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.25) 25%,
+              rgba(255, 255, 255, 0.6) 50%,
+              rgba(255, 255, 255, 0.25) 75%,
+              transparent 100%
+            );
+            background-size: 200% 100%;
+            animation: bdInd 1.1s linear infinite;
+            border-radius: inherit;
           }
-          @keyframes bdInd { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+          @keyframes bdInd {
+            0% {
+              background-position: 200% 0;
+            }
+            100% {
+              background-position: -200% 0;
+            }
+          }
         `}</style>
       </div>
     );
@@ -54,7 +101,9 @@ export default function NewProductClient() {
     return (
       <div className="p-6 space-y-3">
         <div className="text-red-400">Error: {String(err)}</div>
-        <button className="btn" onClick={createViaApi}>Try again</button>
+        <button className="btn" onClick={createViaApi}>
+          Try again
+        </button>
       </div>
     );
   }
