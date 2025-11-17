@@ -41,7 +41,8 @@ export async function POST() {
     .insert({
       org_id: orgId as string,
       created_by: user.id,
-      // name is intentionally left null/empty; user will fill it in the editor
+      // keep DB happy but visually blank for the user
+      name: "",
     })
     .select("id")
     .single();
