@@ -69,6 +69,33 @@ const microBtn =
   "bg-[#1f2d48] text-[#dbc078] border border-white/10 shadow-[--shadow-0] " +
   "hover:translate-y-[-1px] hover:shadow-[--shadow-1] transition";
 
+// lightweight tooltip for form labels
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <span className="relative inline-flex items-center group cursor-help">
+      <span
+        className="
+          inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/30 
+          text-[10px] leading-none text-white/80 bg-white/10
+        "
+        aria-hidden="true"
+      >
+        i
+      </span>
+      <span
+        className="
+          pointer-events-none absolute left-1/2 top-full z-20 mt-1 w-56 -translate-x-1/2 rounded-xl 
+          bg-[rgba(12,18,32,0.98)] px-3 py-2 text-xs text-slate-50 shadow-lg opacity-0 
+          group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity
+        "
+        role="tooltip"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
 export default function HubClient({
   companies,
   products,
@@ -93,7 +120,7 @@ export default function HubClient({
     (initialSelections?.motion as any) ?? MOTIONS_UI[0]
   );
 
-  // New: Output language (UI-facing) — default Auto
+  // Output language (UI-facing) — default Auto
   const [outputLang, setOutputLang] =
     React.useState<(typeof LANG_OPTIONS)[number]["code"]>("auto");
 
@@ -282,11 +309,15 @@ export default function HubClient({
               <div className="card-body space-y-4">
                 {/* Output language */}
                 <div>
-                  <label className="field-label" htmlFor="outputLanguage">
-                    Output language
+                  <label
+                    className="field-label flex items-center gap-1"
+                    htmlFor="outputLanguage-ui"
+                  >
+                    <span>Output language</span>
+                    <InfoTooltip text="The playbook will be written fully in this language." />
                   </label>
                   <select
-                    id="outputLanguage"
+                    id="outputLanguage-ui"
                     name="outputLanguage-ui"
                     className="select rounded-2xl border-white/20 text-sm"
                     value={outputLang}
@@ -303,13 +334,13 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-[--color-ink-3]">
-                    The playbook will be written in this language end to end.
-                  </p>
                 </div>
 
                 <div>
-                  <label className="field-label">Tone</label>
+                  <label className="field-label flex items-center gap-1">
+                    <span>Tone</span>
+                    <InfoTooltip text="How you want the playbook to sound in front of the customer (more formal, more consultative, more challenging, or more storytelling)." />
+                  </label>
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={toneUI}
@@ -324,15 +355,13 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-[--color-ink-3]">
-                    How you want the playbook to sound in front of the customer
-                    (more formal, more consultative, more challenging, or more
-                    storytelling).
-                  </p>
                 </div>
 
                 <div>
-                  <label className="field-label">Experience level</label>
+                  <label className="field-label flex items-center gap-1">
+                    <span>Experience level</span>
+                    <InfoTooltip text="Choose whether the seller is already experienced with this type of deal or needs more step-by-step guidance." />
+                  </label>
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={experienceUI}
@@ -349,14 +378,13 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-[--color-ink-3]">
-                    Choose whether the seller is already experienced with this
-                    type of deal or needs more step-by-step guidance.
-                  </p>
                 </div>
 
                 <div>
-                  <label className="field-label">Sales motion</label>
+                  <label className="field-label flex items-center gap-1">
+                    <span>Sales motion</span>
+                    <InfoTooltip text="The type of sales process the playbook should assume (inbound leads, cold outbound, partner-led, or growing an existing account)." />
+                  </label>
                   <select
                     className="select rounded-2xl border-white/20 text-sm"
                     value={motionUI}
@@ -371,11 +399,6 @@ export default function HubClient({
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-[--color-ink-3]">
-                    The type of sales process the playbook should assume
-                    (inbound leads, cold outbound, partner-led, or growing an
-                    existing account).
-                  </p>
                 </div>
               </div>
 
