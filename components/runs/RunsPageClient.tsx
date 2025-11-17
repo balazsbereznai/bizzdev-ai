@@ -4,7 +4,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 
-export default function RunsPageClient({ runs }: { runs: any[] }) {
+type RunWithDocs = {
+  id: string;
+  meta?: any;
+  docs?: any[];
+};
+
+export default function RunsPageClient({ runs }: { runs: RunWithDocs[] }) {
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
 
@@ -80,6 +86,9 @@ export default function RunsPageClient({ runs }: { runs: any[] }) {
             const title = buildPlaybookTitle(doc.meta, doc.title);
             const timestamp = new Date(doc.created_at).toLocaleString();
 
+            const ui = run?.meta?.ui ?? {};
+            const badges = buildUiBadges(ui);
+
             return (
               <li key={doc.id}>
                 <Link
@@ -95,13 +104,33 @@ export default function RunsPageClient({ runs }: { runs: any[] }) {
                     focus-visible:ring-2 focus-visible:ring-[--color-primary]
                   "
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-1.5">
                     <div className="truncate font-medium text-[--color-ink] group-hover:text-[--color-primary] transition-colors">
                       {title}
                     </div>
-                    <div className="mt-0.5 text-xs text-[--muted-foreground]">
+                    <div className="text-xs text-[--muted-foreground]">
                       {timestamp}
                     </div>
+
+                    {badges.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {badges.map((b) => (
+                          <span
+                            key={b}
+                            className="
+                              inline-flex items-center rounded-full
+                              border border-white/18
+                              bg-[color:var(--surface)/.9]
+                              px-2.5 py-0.5
+                              text-[11px] font-medium
+                              text-[--color-ink-3]
+                            "
+                          >
+                            {b}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </Link>
               </li>
@@ -112,6 +141,8 @@ export default function RunsPageClient({ runs }: { runs: any[] }) {
     </div>
   );
 }
+
+/* -------------------------- helpers -------------------------- */
 
 function buildPlaybookTitle(meta: any, fallbackTitle?: string) {
   try {
@@ -124,6 +155,68 @@ function buildPlaybookTitle(meta: any, fallbackTitle?: string) {
     return fallbackTitle || "Sales Playbook";
   } catch {
     return fallbackTitle || "Sales Playbook";
+  }
+}
+
+// Map internal codes from runs.meta.ui back to human labels
+function buildUiBadges(ui: any): string[] {
+  if (!ui || typeof ui !== "object") return [];
+
+  const toneLabel = prettyTone(ui.tone);
+  const experienceLabel = prettyExperience(ui.experience);
+  const motionLabel = prettyMotion(ui.motion);
+  const langLabel = prettyLanguage(ui.outputLanguage);
+
+  return [langLabel, toneLabel, experienceLabel, motionLabel].filter(
+    Boolean
+  ) as string[];
+}
+
+function prettyTone(code?: string | null): string | null {
+  if (!code || code === "default") return null;
+  switch (code) {
+    case "formal":
+      return "Tone: Professional";
+    case "trusted_advisor":
+      return "Tone: Consultative";
+    case "challenger":
+      return "Tone: Challenger";
+    case "friendly_expert":
+      return "Tone: Storytelling";
+    default:
+      return null;
+  }
+}
+
+function prettyExperience(code?: string | null): string | null {
+  if (!code || code === "default") return "Experience: Experienced";
+  if (code === "unexperienced") return "Experience: Unexperienced";
+  return null;
+}
+
+function prettyMotion(motion?: string | null): string | null {
+  if (!motion) return null;
+  // Stored as UI labels already (Inbound, Outbound, etc.)
+  return `Motion: ${motion}`;
+}
+
+function prettyLanguage(code?: string | null): string | null {
+  if (!code || code === "auto") return "Language: Auto";
+  switch (code) {
+    case "en":
+      return "Language: English";
+    case "hu":
+      return "Language: Hungarian";
+    case "de":
+      return "Language: German";
+    case "fr":
+      return "Language: French";
+    case "es":
+      return "Language: Spanish";
+    case "it":
+      return "Language: Italian";
+    default:
+      return `Language: ${code.toUpperCase()}`;
   }
 }
 

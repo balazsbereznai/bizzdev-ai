@@ -209,7 +209,7 @@ export async function createRunFromHub(formData: FormData) {
   const icpName = icp.name ?? "ICP";
   const title = `${companyName} ▸ ${productName} ▸ ${icpName}`;
 
-  // Create run row (business logic unchanged)
+  // Create run row (business logic unchanged, ui now also stores outputLanguage)
   const { data: runRow, error: runErr } = await supabase
     .from("runs")
     .insert({
@@ -220,7 +220,7 @@ export async function createRunFromHub(formData: FormData) {
       meta: {
         source: { page: "hub" },
         selections: { companyId, productId, icpId },
-        ui: { tone, experience, motion },
+        ui: { tone, experience, motion, outputLanguage },
       },
     })
     .select("id")
