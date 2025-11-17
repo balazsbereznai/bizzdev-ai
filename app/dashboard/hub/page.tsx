@@ -56,29 +56,9 @@ export default async function HubPage() {
               Sales Playbook Hub
             </h1>
             <p className="mt-1 text-sm text-[--muted-foreground]">
-              This is where you generate tailored sales playbooks for your own
-              business and offers.
+              Select from <strong>Companies</strong>, <strong>Products</strong>, and{" "}
+              <strong>Potential Customer Profiles</strong> to generate your tailored playbook.
             </p>
-            <ol className="mt-3 space-y-1 text-xs sm:text-sm text-[--muted-foreground]">
-              <li>
-                <span className="font-semibold">1.</span>{" "}
-                Create a <strong>Company</strong> for your own organisation.
-              </li>
-              <li>
-                <span className="font-semibold">2.</span>{" "}
-                Create a <strong>Product</strong> that you want to sell.
-              </li>
-              <li>
-                <span className="font-semibold">3.</span>{" "}
-                Create a <strong>Potential Customer Profile</strong> (your ICP /
-                typical buyer).
-              </li>
-              <li>
-                <span className="font-semibold">4.</span>{" "}
-                Select any combination of these, choose your options on the
-                right, and click <strong>Generate playbook</strong>.
-              </li>
-            </ol>
           </div>
         </div>
 
@@ -87,14 +67,8 @@ export default async function HubPage() {
           products={[]}
           icps={[]}
           links={{
-            companies: {
-              edit: "/companies/inventory",
-              add: "/companies/inventory#new",
-            },
-            products: {
-              edit: "/products/inventory",
-              add: "/products/inventory#new",
-            },
+            companies: { edit: "/companies/inventory", add: "/companies/inventory#new" },
+            products: { edit: "/products/inventory", add: "/products/inventory#new" },
             icps: { edit: "/icps/inventory", add: "/icps/inventory#new" },
           }}
           formAction={createRunFromHub.bind(null)}
@@ -110,20 +84,22 @@ export default async function HubPage() {
     .eq("user_id", uid)
     .order("created_at", { ascending: false });
 
-  // PRODUCTS: owned by created_by
+  // PRODUCTS: owned by created_by, hide completely blank names
   const { data: productsRaw } = await supabase
     .from("products")
     .select("id, name, category, description, updated_at, created_by")
     .eq("created_by", uid)
+    .not("name", "is", null)
+    .neq("name", "")
     .order("updated_at", { ascending: false });
 
-  // ICPS: owned by created_by
+  // ICPS: owned by created_by, hide completely blank names
   const { data: icpsRaw } = await supabase
     .from("icps")
-    .select(
-      "id, name, industry, company_size, target_region, updated_at, created_by"
-    )
+    .select("id, name, company_size, target_region, updated_at, created_by")
     .eq("created_by", uid)
+    .not("name", "is", null)
+    .neq("name", "")
     .order("updated_at", { ascending: false });
 
   const companies: Item[] =
@@ -144,7 +120,7 @@ export default async function HubPage() {
     icpsRaw?.map((i) => ({
       id: String(i.id),
       title: i.name ?? "(Untitled ICP)",
-      sub: toSubline([i.industry, i.company_size, i.target_region]),
+      sub: toSubline([i.company_size, i.target_region]),
     })) ?? [];
 
   return (
@@ -163,29 +139,9 @@ export default async function HubPage() {
             Sales Playbook Hub
           </h1>
           <p className="mt-1 text-sm text-[--muted-foreground]">
-            This is where you generate tailored sales playbooks for your own
-            business and offers.
+            Select from <strong>Companies</strong>, <strong>Products</strong>, and{" "}
+            <strong>Potential Customer Profiles</strong> to generate your tailored playbook.
           </p>
-          <ol className="mt-3 space-y-1 text-xs sm:text-sm text-[--muted-foreground]">
-            <li>
-              <span className="font-semibold">1.</span>{" "}
-              Create a <strong>Company</strong> for your own organisation.
-            </li>
-            <li>
-              <span className="font-semibold">2.</span>{" "}
-              Create a <strong>Product</strong> that you want to sell.
-            </li>
-            <li>
-              <span className="font-semibold">3.</span>{" "}
-              Create a <strong>Potential Customer Profile</strong> (your ICP /
-              typical buyer).
-            </li>
-            <li>
-              <span className="font-semibold">4.</span>{" "}
-              Select any combination of these, choose your options on the
-              right, and click <strong>Generate playbook</strong>.
-            </li>
-          </ol>
         </div>
       </div>
 
@@ -194,14 +150,8 @@ export default async function HubPage() {
         products={products}
         icps={icps}
         links={{
-          companies: {
-            edit: "/companies/inventory",
-            add: "/companies/inventory#new",
-          },
-          products: {
-            edit: "/products/inventory",
-            add: "/products/inventory#new",
-          },
+          companies: { edit: "/companies/inventory", add: "/companies/inventory#new" },
+          products: { edit: "/products/inventory", add: "/products/inventory#new" },
           icps: { edit: "/icps/inventory", add: "/icps/inventory#new" },
         }}
         formAction={createRunFromHub.bind(null)}

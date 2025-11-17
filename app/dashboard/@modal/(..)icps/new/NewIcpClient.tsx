@@ -1,3 +1,4 @@
+// app/dashboard/@modal/(..)icps/new/NewIcpClient.tsx
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,6 @@ export default function NewIcpClient() {
   const [id, setId] = React.useState<string | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(true);
-  const [saved, setSaved] = React.useState(false);
 
   const createViaApi = React.useCallback(async () => {
     setBusy(true);
@@ -28,28 +28,9 @@ export default function NewIcpClient() {
     }
   }, []);
 
-  // Create temp ICP when modal mounts
   React.useEffect(() => {
     createViaApi();
   }, [createViaApi]);
-
-  // Mark as saved when the editor fires bd:saved (on successful Save & Exit)
-  React.useEffect(() => {
-    function handleSaved() {
-      setSaved(true);
-    }
-    window.addEventListener('bd:saved', handleSaved);
-    return () => window.removeEventListener('bd:saved', handleSaved);
-  }, []);
-
-  // Cleanup: if this was a new ICP and never saved, delete it on unmount
-  React.useEffect(() => {
-    return () => {
-      if (!id || saved) return;
-      // fire-and-forget; we don't block navigation on cleanup
-      fetch(`/api/icps/${id}`, { method: 'DELETE' }).catch(() => {});
-    };
-  }, [id, saved]);
 
   if (busy) {
     return (

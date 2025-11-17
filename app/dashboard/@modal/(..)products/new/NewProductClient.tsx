@@ -1,3 +1,4 @@
+// app/dashboard/@modal/(..)products/new/NewProductClient.tsx
 'use client';
 
 import * as React from 'react';
@@ -7,16 +8,12 @@ export default function NewProductClient() {
   const [id, setId] = React.useState<string | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(true);
-  const [saved, setSaved] = React.useState(false);
 
   const createViaApi = React.useCallback(async () => {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch('/api/products/new', {
-        method: 'POST',
-        cache: 'no-store',
-      });
+      const res = await fetch('/api/products/new', { method: 'POST', cache: 'no-store' });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new Error(text || `Create failed (${res.status})`);
@@ -31,28 +28,9 @@ export default function NewProductClient() {
     }
   }, []);
 
-  // Create the temp product when the modal mounts
   React.useEffect(() => {
     createViaApi();
   }, [createViaApi]);
-
-  // Mark as saved when the editor dispatches bd:saved (on successful Save & Exit)
-  React.useEffect(() => {
-    function handleSaved() {
-      setSaved(true);
-    }
-    window.addEventListener('bd:saved', handleSaved);
-    return () => window.removeEventListener('bd:saved', handleSaved);
-  }, []);
-
-  // Cleanup: if this was a new product and never saved, delete it on unmount
-  React.useEffect(() => {
-    return () => {
-      if (!id || saved) return;
-      // fire-and-forget; we don't block navigation on cleanup
-      fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
-    };
-  }, [id, saved]);
 
   if (busy) {
     return (
